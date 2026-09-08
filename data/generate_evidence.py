@@ -1,0 +1,211 @@
+"""Generate realistic forensic evidence packages for dashboard demonstration and triage."""
+
+import json
+from pathlib import Path
+
+
+def generate_sample_evidence_packages():
+    evidence_packages = [
+        {
+            "wallet_id": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "final_risk_score": 94.5,
+            "confidence_label": "High",
+            "reason_sentence": (
+                "Flagged primarily due to elevated peeling chain score (0.96, in top 1% of wallets); "
+                "elevated distinct broadcast IPs (14); and elevated rapid transaction bursts (8.50). "
+                "The wallet also belongs to a community with elevated network risk (community risk: 91/100)."
+            ),
+            "pattern_hint": "peeling_chain",
+            "shap_explanation": [
+                {"feature": "peeling_chain_score", "shap_value": 0.42, "direction": "increases_risk", "raw_value": 0.96},
+                {"feature": "distinct_ips", "shap_value": 0.28, "direction": "increases_risk", "raw_value": 14},
+                {"feature": "burst_score", "shap_value": 0.22, "direction": "increases_risk", "raw_value": 8.5},
+                {"feature": "round_number_ratio", "shap_value": -0.06, "direction": "decreases_risk", "raw_value": 0.12},
+            ],
+            "subgraph": {
+                "nodes": [
+                    {"id": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "type": "wallet", "cluster_id": 101},
+                    {"id": "tx:9a7f3e8b01", "type": "transaction", "fee": 0.00045},
+                    {"id": "tx:9a7f3e8b02", "type": "transaction", "fee": 0.00052},
+                    {"id": "tx:9a7f3e8b03", "type": "transaction", "fee": 0.00048},
+                    {"id": "1PeelHop1_88f9x", "type": "wallet", "cluster_id": 101},
+                    {"id": "1PeelHop2_44k2z", "type": "wallet", "cluster_id": 101},
+                    {"id": "1FinalDest_99m3q", "type": "wallet", "cluster_id": 204},
+                    {"id": "185.220.101.5", "type": "ip", "country": "Seychelles", "high_risk": True},
+                    {"id": "194.26.29.112", "type": "ip", "country": "Panama", "high_risk": True},
+                ],
+                "edges": [
+                    {"source": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "target": "tx:9a7f3e8b01", "type": "INPUT_TO", "amount": 10.5},
+                    {"source": "tx:9a7f3e8b01", "target": "1PeelHop1_88f9x", "type": "OUTPUT_TO", "amount": 9.8},
+                    {"source": "tx:9a7f3e8b01", "target": "1FinalDest_99m3q", "type": "OUTPUT_TO", "amount": 0.7},
+                    {"source": "1PeelHop1_88f9x", "target": "tx:9a7f3e8b02", "type": "INPUT_TO", "amount": 9.8},
+                    {"source": "tx:9a7f3e8b02", "target": "1PeelHop2_44k2z", "type": "OUTPUT_TO", "amount": 9.1},
+                    {"source": "tx:9a7f3e8b02", "target": "1FinalDest_99m3q", "type": "OUTPUT_TO", "amount": 0.7},
+                    {"source": "185.220.101.5", "target": "tx:9a7f3e8b01", "type": "BROADCAST_FROM"},
+                    {"source": "194.26.29.112", "target": "tx:9a7f3e8b02", "type": "BROADCAST_FROM"},
+                ],
+            },
+        },
+        {
+            "wallet_id": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+            "final_risk_score": 87.2,
+            "confidence_label": "High",
+            "reason_sentence": (
+                "Flagged primarily due to elevated distinct counterparties sending value (fan-in: 42); "
+                "elevated distinct counterparties receiving value (fan-out: 38); and high transaction velocity. "
+                "The wallet also belongs to a community with elevated network risk (community risk: 85/100)."
+            ),
+            "pattern_hint": "fan_in_fan_out",
+            "shap_explanation": [
+                {"feature": "fan_in", "shap_value": 0.38, "direction": "increases_risk", "raw_value": 42},
+                {"feature": "fan_out", "shap_value": 0.34, "direction": "increases_risk", "raw_value": 38},
+                {"feature": "tx_count", "shap_value": 0.18, "direction": "increases_risk", "raw_value": 89},
+                {"feature": "time_between_tx_mean", "shap_value": -0.05, "direction": "decreases_risk", "raw_value": 45.2},
+            ],
+            "subgraph": {
+                "nodes": [
+                    {"id": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy", "type": "wallet", "cluster_id": 105},
+                    {"id": "tx:mix_hub_01", "type": "transaction", "fee": 0.0012},
+                    {"id": "tx:mix_hub_02", "type": "transaction", "fee": 0.0015},
+                    {"id": "1Inflow_A1", "type": "wallet", "cluster_id": 301},
+                    {"id": "1Inflow_A2", "type": "wallet", "cluster_id": 302},
+                    {"id": "1Inflow_A3", "type": "wallet", "cluster_id": 303},
+                    {"id": "3Outflow_B1", "type": "wallet", "cluster_id": 401},
+                    {"id": "3Outflow_B2", "type": "wallet", "cluster_id": 402},
+                    {"id": "104.244.72.115", "type": "ip", "country": "Luxembourg", "high_risk": False},
+                ],
+                "edges": [
+                    {"source": "1Inflow_A1", "target": "tx:mix_hub_01", "type": "INPUT_TO", "amount": 2.5},
+                    {"source": "1Inflow_A2", "target": "tx:mix_hub_01", "type": "INPUT_TO", "amount": 3.1},
+                    {"source": "1Inflow_A3", "target": "tx:mix_hub_01", "type": "INPUT_TO", "amount": 1.8},
+                    {"source": "tx:mix_hub_01", "target": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy", "type": "OUTPUT_TO", "amount": 7.39},
+                    {"source": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy", "target": "tx:mix_hub_02", "type": "INPUT_TO", "amount": 7.39},
+                    {"source": "tx:mix_hub_02", "target": "3Outflow_B1", "type": "OUTPUT_TO", "amount": 3.65},
+                    {"source": "tx:mix_hub_02", "target": "3Outflow_B2", "type": "OUTPUT_TO", "amount": 3.73},
+                    {"source": "104.244.72.115", "target": "tx:mix_hub_01", "type": "BROADCAST_FROM"},
+                ],
+            },
+        },
+        {
+            "wallet_id": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
+            "final_risk_score": 79.8,
+            "confidence_label": "High",
+            "reason_sentence": (
+                "Flagged primarily due to elevated wallet clusters sharing the same broadcast IP (18); "
+                "and transactions involving configured high-risk geographies (high risk geo ratio: 0.85). "
+                "The wallet also belongs to a community with elevated network risk (community risk: 78/100)."
+            ),
+            "pattern_hint": "shared_ip_cluster",
+            "shap_explanation": [
+                {"feature": "shared_ip_with_n_wallets", "shap_value": 0.41, "direction": "increases_risk", "raw_value": 18},
+                {"feature": "high_risk_geo_ratio", "shap_value": 0.32, "direction": "increases_risk", "raw_value": 0.85},
+                {"feature": "distinct_countries", "shap_value": 0.15, "direction": "increases_risk", "raw_value": 6},
+            ],
+            "subgraph": {
+                "nodes": [
+                    {"id": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", "type": "wallet", "cluster_id": 110},
+                    {"id": "tx:proxy_tx_01", "type": "transaction", "fee": 0.0003},
+                    {"id": "bc1qShared1_99x", "type": "wallet", "cluster_id": 111},
+                    {"id": "bc1qShared2_88y", "type": "wallet", "cluster_id": 112},
+                    {"id": "198.51.100.42", "type": "ip", "country": "Iran", "high_risk": True},
+                ],
+                "edges": [
+                    {"source": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", "target": "tx:proxy_tx_01", "type": "INPUT_TO", "amount": 4.2},
+                    {"source": "198.51.100.42", "target": "tx:proxy_tx_01", "type": "BROADCAST_FROM"},
+                ],
+            },
+        },
+        {
+            "wallet_id": "1BoatSLRHtKNngkdXEeobR76b53LETtpyT",
+            "final_risk_score": 64.3,
+            "confidence_label": "Medium",
+            "reason_sentence": (
+                "Flagged primarily due to elevated fees unusually large relative to transferred amounts (fee ratio: 0.12); "
+                "and elevated rapid transaction bursts within 10-minute windows (burst score: 5.0). "
+                "The wallet also belongs to a community with moderate network risk (community risk: 58/100)."
+            ),
+            "pattern_hint": "rapid_cashout",
+            "shap_explanation": [
+                {"feature": "fee_to_amount_ratio", "shap_value": 0.31, "direction": "increases_risk", "raw_value": 0.12},
+                {"feature": "burst_score", "shap_value": 0.24, "direction": "increases_risk", "raw_value": 5.0},
+                {"feature": "avg_amount", "shap_value": -0.08, "direction": "decreases_risk", "raw_value": 0.45},
+            ],
+            "subgraph": {
+                "nodes": [
+                    {"id": "1BoatSLRHtKNngkdXEeobR76b53LETtpyT", "type": "wallet", "cluster_id": 120},
+                    {"id": "tx:burst_01", "type": "transaction", "fee": 0.02},
+                    {"id": "tx:burst_02", "type": "transaction", "fee": 0.02},
+                    {"id": "1Cashout_Exit", "type": "wallet", "cluster_id": 500},
+                    {"id": "203.0.113.19", "type": "ip", "country": "Cyprus", "high_risk": False},
+                ],
+                "edges": [
+                    {"source": "1BoatSLRHtKNngkdXEeobR76b53LETtpyT", "target": "tx:burst_01", "type": "INPUT_TO", "amount": 0.25},
+                    {"source": "tx:burst_01", "target": "1Cashout_Exit", "type": "OUTPUT_TO", "amount": 0.23},
+                    {"source": "1BoatSLRHtKNngkdXEeobR76b53LETtpyT", "target": "tx:burst_02", "type": "INPUT_TO", "amount": 0.20},
+                    {"source": "tx:burst_02", "target": "1Cashout_Exit", "type": "OUTPUT_TO", "amount": 0.18},
+                    {"source": "203.0.113.19", "target": "tx:burst_01", "type": "BROADCAST_FROM"},
+                ],
+            },
+        },
+        {
+            "wallet_id": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
+            "final_risk_score": 53.0,
+            "confidence_label": "Medium",
+            "reason_sentence": (
+                "Flagged due to elevated round-number payment amounts (ratio: 0.90) and geographic hopping across 4 countries. "
+                "The wallet belongs to a community with moderate network risk (community risk: 48/100)."
+            ),
+            "pattern_hint": "unknown",
+            "shap_explanation": [
+                {"feature": "round_number_ratio", "shap_value": 0.22, "direction": "increases_risk", "raw_value": 0.90},
+                {"feature": "distinct_countries", "shap_value": 0.19, "direction": "increases_risk", "raw_value": 4},
+                {"feature": "tx_count", "shap_value": -0.07, "direction": "decreases_risk", "raw_value": 6},
+            ],
+            "subgraph": {
+                "nodes": [
+                    {"id": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo", "type": "wallet", "cluster_id": 130},
+                    {"id": "tx:round_pay_1", "type": "transaction", "fee": 0.0001},
+                    {"id": "1Recipient_R1", "type": "wallet", "cluster_id": 601},
+                ],
+                "edges": [
+                    {"source": "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo", "target": "tx:round_pay_1", "type": "INPUT_TO", "amount": 5.0},
+                    {"source": "tx:round_pay_1", "target": "1Recipient_R1", "type": "OUTPUT_TO", "amount": 4.9999},
+                ],
+            },
+        },
+        {
+            "wallet_id": "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97",
+            "final_risk_score": 24.1,
+            "confidence_label": "Low",
+            "reason_sentence": (
+                "Low anomaly profile consistent with ordinary consumer transactions and single-country broadcasting. "
+                "The wallet belongs to a low-risk community (community risk: 18/100)."
+            ),
+            "pattern_hint": "unknown",
+            "shap_explanation": [
+                {"feature": "distinct_ips", "shap_value": -0.15, "direction": "decreases_risk", "raw_value": 1},
+                {"feature": "tx_count", "shap_value": -0.12, "direction": "decreases_risk", "raw_value": 2},
+                {"feature": "high_risk_geo_ratio", "shap_value": -0.10, "direction": "decreases_risk", "raw_value": 0.0},
+            ],
+            "subgraph": {
+                "nodes": [
+                    {"id": "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97", "type": "wallet", "cluster_id": 140},
+                    {"id": "tx:std_tx_01", "type": "transaction", "fee": 0.00005},
+                    {"id": "1Merchant_Shop", "type": "wallet", "cluster_id": 700},
+                ],
+                "edges": [
+                    {"source": "bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97", "target": "tx:std_tx_01", "type": "INPUT_TO", "amount": 0.05},
+                    {"source": "tx:std_tx_01", "target": "1Merchant_Shop", "type": "OUTPUT_TO", "amount": 0.04995},
+                ],
+            },
+        },
+    ]
+
+    out_path = Path("data/evidence_packages.json")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(evidence_packages, indent=2), encoding="utf-8")
+    print(f"Generated {len(evidence_packages)} evidence packages to {out_path}")
+
+
+if __name__ == "__main__":
+    generate_sample_evidence_packages()

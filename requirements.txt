@@ -12,3 +12,5 @@ faker
 python-louvain
 xmltodict
 matplotlib
+joblib
+pytest

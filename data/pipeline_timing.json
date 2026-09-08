@@ -1,0 +1,11 @@
+{
+  "phase_1_dataset": {
+    "seconds": 8.230004459619522e-05,
+    "status": "ok"
+  },
+  "phase_2_ingestion": {
+    "seconds": 7.180002285167575e-05,
+    "status": "error",
+    "error": "FileNotFoundError: Transaction file not found: data\\raw\\transactions.csv"
+  }
+}
