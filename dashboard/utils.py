@@ -63,6 +63,11 @@ def confidence_color(label: str | None) -> str:
 def load_evidence_packages(path: str = "data/evidence_packages.json") -> list[dict[str, Any]]:
     """Load serializable evidence packages from disk safely."""
     target = Path(path)
+    if not target.is_file() and path == "data/evidence_packages.json":
+        fallback = Path("data/synthetic_wallet_evidence.json")
+        if fallback.is_file():
+            target = fallback
+
     if not target.is_file():
         return []
     try:
