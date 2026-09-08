@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import streamlit as st
 
 from dashboard.utils import (
@@ -122,10 +123,11 @@ def render_wallet_detail(evidence: dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
 
-    # SHAP Feature Contribution Chart
+    # SHAP Feature Contribution Chart & Structured Table
     st.markdown("#### 📊 Model Feature Contributions (SHAP)")
     if shap_items:
         _render_shap_chart(shap_items)
+        _render_shap_table(shap_items)
     else:
         st.info("No feature explanation breakdown available for this record.")
 
@@ -134,7 +136,6 @@ def render_wallet_detail(evidence: dict[str, Any]) -> None:
     # Investigator Triage Action Bar & Case Dossier Export
     st.markdown("#### 🛠️ Case Triage & Forensic Dossier Export")
 
-    # Session state for analyst notes
     note_key = f"notes_{wallet_id}"
     status_key = f"status_{wallet_id}"
 
@@ -153,7 +154,6 @@ def render_wallet_detail(evidence: dict[str, Any]) -> None:
             key=note_key,
         )
 
-    # Generate Dossier content
     dossier_md = generate_forensic_dossier_markdown(
         evidence=evidence,
         analyst_notes=analyst_notes,
@@ -180,8 +180,8 @@ def render_wallet_detail(evidence: dict[str, Any]) -> None:
 
 
 def _render_shap_chart(shap_items: list[dict[str, Any]]) -> None:
-    """Render a horizontal bar chart of SHAP values colored by directional impact without label overlap."""
-    feature_labels = []
+    """Render a clean horizontal bar chart of SHAP values with no floating overlapping text."""
+    feature_names = []
     values = []
     colors = []
 
@@ -189,53 +189,64 @@ def _render_shap_chart(shap_items: list[dict[str, Any]]) -> None:
         feat = str(item.get("feature", "unknown"))
         val = float(item.get("shap_value", 0.0))
         direction = str(item.get("direction", ""))
-        raw = item.get("raw_value")
 
-        raw_str = f"{raw:.2f}" if isinstance(raw, float) else str(raw) if raw is not None else ""
-        label = f"{feat} (raw: {raw_str})" if raw_str else feat
-
-        feature_labels.append(label)
+        feature_names.append(feat)
         values.append(val)
         if direction == "increases_risk" or val > 0:
             colors.append("#E53E3E")
         else:
             colors.append("#38A169")
 
-    fig, ax = plt.subplots(figsize=(6.5, max(2.6, len(feature_labels) * 0.75)))
+    fig, ax = plt.subplots(figsize=(6.8, max(2.6, len(feature_names) * 0.75)))
     fig.patch.set_facecolor("#1A202C")
     ax.set_facecolor("#1A202C")
 
-    y_pos = range(len(feature_labels))
-    bars = ax.barh(y_pos, values, color=colors, height=0.5, edgecolor="none")
+    y_pos = range(len(feature_names))
+    bars = ax.barh(y_pos, values, color=colors, height=0.52, edgecolor="none")
 
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(feature_labels, color="#E2E8F0", fontsize=9.5)
+    ax.set_yticklabels(feature_names, color="#E2E8F0", fontsize=9.5)
     ax.invert_yaxis()
     ax.set_xlabel("SHAP Impact on Anomaly Score", color="#A0AEC0", fontsize=9)
     ax.tick_params(colors="#A0AEC0", labelsize=8.5)
     ax.grid(axis="x", linestyle="--", alpha=0.25, color="#4A5568")
     ax.axvline(0, color="#718096", linestyle="--", linewidth=0.8, alpha=0.6)
 
-    # Dynamic xlim to guarantee labels never clip or overlap axes
-    min_val = min(values) if values else 0.0
-    max_val = max(values) if values else 0.0
+    # Calculate padded xlim so bars and values never clip
+    min_val = min(0.0, min(values)) if values else 0.0
+    max_val = max(0.0, max(values)) if values else 0.0
     span = max(0.08, max_val - min_val)
-    ax.set_xlim(min(0.0, min_val) - span * 0.28, max(0.0, max_val) + span * 0.28)
+    ax.set_xlim(min_val - span * 0.22, max_val + span * 0.22)
 
+    # Place values cleanly inside or at bar edge with safe padding
     for bar, val in zip(bars, values):
         x_pos = bar.get_width()
-        offset = span * 0.03 if x_pos >= 0 else -span * 0.03
-        ha = "left" if x_pos >= 0 else "right"
-        ax.text(
-            x_pos + offset,
-            bar.get_y() + bar.get_height() / 2,
-            f"{val:+.2f}",
-            va="center",
-            ha=ha,
-            color="#CBD5E0",
-            fontsize=8.5,
-            fontweight="bold",
-        )
+        if abs(val) >= 0.12:
+            # Inside the bar
+            ax.text(
+                x_pos / 2,
+                bar.get_y() + bar.get_height() / 2,
+                f"{val:+.2f}",
+                va="center",
+                ha="center",
+                color="#FFFFFF",
+                fontsize=8.5,
+                fontweight="bold",
+            )
+        else:
+            # Just outside the bar with safe offset
+            ha = "left" if val >= 0 else "right"
+            offset = span * 0.025 if val >= 0 else -span * 0.025
+            ax.text(
+                x_pos + offset,
+                bar.get_y() + bar.get_height() / 2,
+                f"{val:+.2f}",
+                va="center",
+                ha=ha,
+                color="#CBD5E0",
+                fontsize=8.5,
+                fontweight="bold",
+            )
 
     red_patch = plt.Line2D([0], [0], color="#E53E3E", lw=4, label="Increases Risk")
     green_patch = plt.Line2D([0], [0], color="#38A169", lw=4, label="Decreases Risk")
@@ -252,3 +263,27 @@ def _render_shap_chart(shap_items: list[dict[str, Any]]) -> None:
     plt.tight_layout()
     st.pyplot(fig, use_container_width=True)
     plt.close(fig)
+
+
+def _render_shap_table(shap_items: list[dict[str, Any]]) -> None:
+    """Render a structured feature contribution breakdown table."""
+    rows = []
+    for item in shap_items:
+        feat = str(item.get("feature", "unknown"))
+        val = float(item.get("shap_value", 0.0))
+        direction = str(item.get("direction", ""))
+        raw = item.get("raw_value")
+
+        raw_str = f"{raw:.2f}" if isinstance(raw, float) else str(raw) if raw is not None else "N/A"
+        dir_display = "🚨 Increases Risk" if direction == "increases_risk" or val > 0 else "🟢 Decreases Risk"
+
+        rows.append(
+            {
+                "Feature Name": feat,
+                "Observed Raw Value": raw_str,
+                "Risk Contribution": dir_display,
+                "SHAP Impact": f"{val:+.4f}",
+            }
+        )
+
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
