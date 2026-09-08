@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 from typing import Any
 
 from pyvis.network import Network
@@ -11,7 +10,7 @@ import streamlit.components.v1 as components
 
 
 def render_subgraph(evidence: dict[str, Any]) -> None:
-    """Convert evidence subgraph to a pyvis Network and render in Streamlit."""
+    """Convert evidence subgraph to a pyvis Network and render in Streamlit with visual controls."""
     if not evidence:
         st.info("No subgraph data to display.")
         return
@@ -27,6 +26,33 @@ def render_subgraph(evidence: dict[str, Any]) -> None:
         st.info("No neighborhood graph available for this wallet.")
         return
 
+    # Visual Layout & Physics Controls
+    with st.expander("⚙️ Graph Physics & Display Controls", expanded=False):
+        ctrl_col1, ctrl_col2, ctrl_col3 = st.columns(3)
+        with ctrl_col1:
+            spring_length = st.slider("Spring Distance", min_value=60, max_value=220, value=120, step=10)
+        with ctrl_col2:
+            gravity = st.slider("Node Repulsion (Gravity)", min_value=-4000, max_value=-1000, value=-2500, step=250)
+        with ctrl_col3:
+            enable_physics = st.checkbox("Enable Physics Simulation", value=True)
+
+    # Topology Summary Pills
+    wallet_count = sum(1 for n in nodes if str(n.get("type", "")).lower() == "wallet")
+    tx_count = sum(1 for n in nodes if str(n.get("type", "")).lower() == "transaction")
+    ip_count = sum(1 for n in nodes if str(n.get("type", "")).lower() == "ip")
+
+    st.markdown(
+        f"""
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <span style="background-color: #2B6CB0; color: #EBF8FF; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 12px;">● {wallet_count} Wallets</span>
+            <span style="background-color: #4A5568; color: #F7FAFC; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 12px;">◆ {tx_count} Transactions</span>
+            <span style="background-color: #C05621; color: #FFFAF0; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 12px;">▲ {ip_count} Broadcast IPs</span>
+            <span style="background-color: #2D3748; color: #CBD5E0; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 12px;">🔗 {len(edges)} Edges</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Initialize Pyvis Network
     net = Network(
         height="480px",
@@ -36,14 +62,16 @@ def render_subgraph(evidence: dict[str, Any]) -> None:
         directed=True,
     )
 
-    # Configure physics for clean layout and node separation
-    net.barnes_hut(
-        gravity=-2500,
-        central_gravity=0.25,
-        spring_length=130,
-        spring_strength=0.05,
-        damping=0.12,
-    )
+    if enable_physics:
+        net.barnes_hut(
+            gravity=gravity,
+            central_gravity=0.25,
+            spring_length=spring_length,
+            spring_strength=0.05,
+            damping=0.12,
+        )
+    else:
+        net.toggle_physics(False)
 
     # Add nodes with distinct styling by type
     added_nodes = set()
@@ -56,7 +84,6 @@ def render_subgraph(evidence: dict[str, Any]) -> None:
         node_type = str(node.get("type", "wallet")).casefold()
         is_selected = (node_id == selected_wallet)
 
-        # Truncate label for clean display
         display_label = (
             f"{node_id[:10]}..." if len(node_id) > 12 and node_type != "ip" else node_id
         )
@@ -138,7 +165,6 @@ def render_subgraph(evidence: dict[str, Any]) -> None:
                 arrows="to",
             )
 
-    # Render HTML in Streamlit component
     raw_html = net.generate_html()
     components.html(raw_html, height=500, scrolling=False)
 
