@@ -8,14 +8,22 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
+from dashboard.landing_component import render_interactive_landing
 from dashboard.utils import DESIGN_TOKENS, compute_network_summary_stats, risk_band_for_score
 
 
 def render_overview_tab(evidence_list: list[dict[str, Any]]) -> None:
-    """Render Tab 1: Overview with headline metrics and distribution charts."""
+    """Render Tab 1: Overview with interactive JS/TS landing console and distribution charts."""
     if not evidence_list:
         st.info("No evidence packages loaded.")
         return
+
+    # 1. High-Performance Interactive Cyber-Forensics Landing Console (JS/TS + Canvas)
+    render_interactive_landing(evidence_list)
+
+    st.markdown("---")
+    st.markdown("### 📊 Network Risk & Behavioral Statistical Distributions")
+    st.caption("Aggregate distribution profiles across flagged transaction clusters and broadcast entities.")
 
     stats = compute_network_summary_stats(evidence_list)
 
