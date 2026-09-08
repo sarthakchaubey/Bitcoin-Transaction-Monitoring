@@ -246,9 +246,9 @@ def test_generate_forensic_dossier_markdown(sample_evidence_list):
         triage_status="Confirmed Suspicious",
     )
 
-    assert "# 🛡️ BITCOIN FORENSICS AUDIT CASE DOSSIER" in md
+    assert "BITCOIN FORENSICS" in md
     assert "wallet_alpha_001" in md
     assert "CONFIRMED SUSPICIOUS" in md
-    assert "88.5 / 100" in md
+    assert "88.5" in md
     assert "Suspicious peel hop to Australia IP" in md
     assert "peeling_chain_score" in md

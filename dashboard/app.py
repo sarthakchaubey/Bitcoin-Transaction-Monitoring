@@ -1,50 +1,110 @@
-"""Main entry point for the Bitcoin Transaction Forensics Dashboard."""
+"""Main entry point for the Bitcoin Transaction Forensics Case-File Dashboard.
+
+Follows the exact visual design system and structure in ANTIGRAVITY_DASHBOARD_BRIEF.md.
+"""
 
 from __future__ import annotations
 
 import pandas as pd
 import streamlit as st
 
-from dashboard.analytics_view import render_analytics_view
-from dashboard.comparator_view import render_comparator_view
-from dashboard.detail_view import render_wallet_detail
-from dashboard.diagnostics_view import render_diagnostics_view
-from dashboard.graph_view import render_subgraph
+from dashboard.analytics_view import render_model_insights_tab, render_overview_tab
+from dashboard.detail_view import render_case_detail_tab
+from dashboard.diagnostics_view import render_evaluation_tab
+from dashboard.graph_view import render_network_tab
 from dashboard.utils import (
+    DESIGN_TOKENS,
     filter_alerts,
     load_evidence_packages,
+    risk_band_for_score,
+    risk_color,
 )
 
-# 1. Page Configuration
+# 1. Streamlit Page Configuration
 st.set_page_config(
-    page_title="Bitcoin Forensics Console",
-    page_icon="🔍",
+    page_title="Bitcoin Forensics Case Console",
+    page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS styling for dark forensics console theme
+# 2. Case-File Dark Design System Styling
 st.markdown(
-    """
+    f"""
     <style>
-    .metric-card {
-        background-color: #1A202C;
-        border: 1px solid #2D3748;
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 8px;
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        border-bottom: 2px solid #2D3748;
-        padding-bottom: 4px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 8px 18px;
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,600;0,8..60,700;1,8..60,600&display=swap');
+
+    :root {{
+        --bg: {DESIGN_TOKENS['bg']};
+        --surface: {DESIGN_TOKENS['surface']};
+        --surface-raised: {DESIGN_TOKENS['surface_raised']};
+        --border: {DESIGN_TOKENS['border']};
+        --text: {DESIGN_TOKENS['text']};
+        --text-muted: {DESIGN_TOKENS['text_muted']};
+        --accent: {DESIGN_TOKENS['accent']};
+        --accent-hover: {DESIGN_TOKENS['accent_hover']};
+        --risk-low: {DESIGN_TOKENS['risk_low']};
+        --risk-medium: {DESIGN_TOKENS['risk_medium']};
+        --risk-high: {DESIGN_TOKENS['risk_high']};
+        --risk-critical: {DESIGN_TOKENS['risk_critical']};
+    }}
+
+    .stApp {{
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }}
+
+    h1, h2, h3, h4 {{
+        font-family: 'Source Serif 4', Georgia, serif;
+        color: var(--text);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }}
+
+    /* Monospace for metrics and data elements */
+    code, pre, .mono-data {{
+        font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    }}
+
+    /* Custom tab navigation bar */
+    .stTabs [data-baseweb="tab-list"] {{
+        gap: 6px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 2px;
+        background-color: transparent;
+    }}
+
+    .stTabs [data-baseweb="tab"] {{
+        padding: 10px 20px;
         border-radius: 6px 6px 0 0;
         font-weight: 600;
-        font-size: 0.95rem;
-    }
+        font-size: 0.92rem;
+        color: var(--text-muted);
+        background-color: var(--surface);
+        border: 1px solid var(--border);
+        border-bottom: none;
+    }}
+
+    .stTabs [aria-selected="true"] {{
+        background-color: var(--surface-raised) !important;
+        color: var(--accent) !important;
+        border-top: 2px solid var(--accent) !important;
+    }}
+
+    /* Sidebar container */
+    section[data-testid="stSidebar"] {{
+        background-color: var(--surface);
+        border-right: 1px solid var(--border);
+    }}
+
+    /* Custom dataframe/table styling */
+    .queue-table-container {{
+        background-color: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        overflow: hidden;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -58,21 +118,21 @@ def get_evidence_data(path: str = "data/evidence_packages.json") -> list[dict]:
 
 
 def main() -> None:
-    # Title & Header
+    # 3. Header & Case Console Identity
     st.markdown(
-        """
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #2D3748; padding-bottom: 12px; margin-bottom: 16px;">
+        f"""
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid {DESIGN_TOKENS['border']}; padding-bottom: 14px; margin-bottom: 18px;">
             <div>
-                <h1 style="margin: 0; font-size: 1.85rem; color: #F7FAFC;">
-                    🔍 Bitcoin Transaction Forensics Console
+                <h1 style="margin: 0; font-size: 1.85rem; color: {DESIGN_TOKENS['text']};">
+                    🛡️ Bitcoin Forensics Case Console
                 </h1>
-                <p style="margin: 4px 0 0 0; color: #A0AEC0; font-size: 0.92rem;">
-                    AI-powered transaction monitoring, anomaly scoring, SHAP explainability, and interactive graph forensics
+                <p style="margin: 3px 0 0 0; color: {DESIGN_TOKENS['text_muted']}; font-size: 0.9rem;">
+                    Offline Transaction Monitoring, Community Risk Scoring & Explainable AI Case Investigation
                 </p>
             </div>
             <div style="text-align: right;">
-                <span style="background-color: #2D3748; color: #68D391; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; border: 1px solid #38A169;">
-                    ● SYSTEM ONLINE
+                <span style="background-color: {DESIGN_TOKENS['surface_raised']}; color: {DESIGN_TOKENS['accent']}; border: 1px solid {DESIGN_TOKENS['accent']}; padding: 4px 10px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; font-weight: 600;">
+                    OFFLINE FORENSICS MODE
                 </span>
             </div>
         </div>
@@ -80,7 +140,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    # 2. Load Data
+    # 4. Load Data
     all_evidence = get_evidence_data()
 
     if not all_evidence:
@@ -90,14 +150,16 @@ def main() -> None:
         )
         return
 
-    # Extract distinct pattern hints for filters
+    # 5. Sidebar Triage Filters
     available_patterns = sorted(
         {str(item.get("pattern_hint", "unknown")) for item in all_evidence if item.get("pattern_hint")}
     )
-    confidence_options = ["High", "Medium", "Low"]
+    confidence_options = ["Critical", "High", "Medium", "Low"]
 
-    # 3. Sidebar Filters
-    st.sidebar.markdown("### 🎛️ Forensics Triage Filters")
+    st.sidebar.markdown(
+        f"<h3 style='color: {DESIGN_TOKENS['accent']}; font-family: Source Serif 4, Georgia, serif;'>🎛️ Queue Filters</h3>",
+        unsafe_allow_html=True,
+    )
 
     min_score = st.sidebar.slider(
         "Minimum Risk Score Threshold",
@@ -109,10 +171,10 @@ def main() -> None:
     )
 
     selected_labels = st.sidebar.multiselect(
-        "Confidence Triage Label",
+        "Risk Severity / Confidence",
         options=confidence_options,
         default=confidence_options,
-        help="Filter by assigned confidence severity (High, Medium, Low).",
+        help="Filter by assigned risk severity band.",
     )
 
     selected_patterns = st.sidebar.multiselect(
@@ -123,16 +185,16 @@ def main() -> None:
     )
 
     search_query = st.sidebar.text_input(
-        "Search Wallet ID",
+        "Search Target Wallet ID",
         value="",
         placeholder="e.g. 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
     )
 
-    if st.sidebar.button("🔄 Clear Cache & Reload", use_container_width=True):
+    if st.sidebar.button("🔄 Reload Evidence Records", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
-    # 4. Filter Alerts
+    # Filtered dataset
     filtered_evidence = filter_alerts(
         all_evidence,
         min_score=min_score,
@@ -146,105 +208,107 @@ def main() -> None:
         reverse=True,
     )
 
-    # 5. Top Summary Metrics Row
-    total_analyzed = len(all_evidence)
-    total_flagged = len(filtered_evidence)
-    high_count = sum(1 for item in filtered_evidence if str(item.get("confidence_label", "")).casefold() == "high")
-    med_count = sum(1 for item in filtered_evidence if str(item.get("confidence_label", "")).casefold() == "medium")
-    low_count = sum(1 for item in filtered_evidence if str(item.get("confidence_label", "")).casefold() == "low")
-
-    m_col1, m_col2, m_col3, m_col4, m_col5 = st.columns(5)
-    m_col1.metric("Wallets Analyzed", total_analyzed)
-    m_col2.metric("Matching Alerts", total_flagged, delta=f"{total_flagged}/{total_analyzed}")
-    m_col3.metric("High Risk (🚨)", high_count)
-    m_col4.metric("Medium Risk (⚠️)", med_count)
-    m_col5.metric("Low Risk (ℹ️)", low_count)
-
-    st.markdown("---")
-
-    # 6. Tabbed Navigation Console
-    tab_triage, tab_analytics, tab_compare, tab_diagnostics = st.tabs(
+    # 6. Six Required Tabs from ANTIGRAVITY_DASHBOARD_BRIEF.md
+    tab_overview, tab_queue, tab_case, tab_network, tab_models, tab_eval = st.tabs(
         [
-            "🚨 Triage & Investigation",
-            "📊 Network Risk Analytics",
-            "⚖️ Multi-Entity Comparator",
-            "⏱️ Pipeline Diagnostics",
+            "📋 Overview",
+            "🚨 Alert Queue",
+            "📁 Case Detail",
+            "🕸️ Network",
+            "🧠 Model Insights",
+            "📊 Evaluation",
         ]
     )
 
-    # --- TAB 1: TRIAGE & DRILLDOWN ---
-    with tab_triage:
-        if not filtered_evidence:
-            st.info("No alert records match the selected sidebar filters. Try lowering the threshold or clearing filters.")
-        else:
-            st.markdown("### 📋 Ranked Alert Triage List")
+    # --- TAB 1: OVERVIEW ---
+    with tab_overview:
+        render_overview_tab(all_evidence)
 
-            table_rows = []
-            for item in filtered_evidence:
-                reason_preview = str(item.get("reason_sentence", ""))
-                if len(reason_preview) > 90:
-                    reason_preview = reason_preview[:87] + "..."
+    # --- TAB 2: ALERT QUEUE ---
+    with tab_queue:
+        _render_alert_queue_tab(filtered_evidence, len(all_evidence))
 
-                table_rows.append(
-                    {
-                        "Wallet ID": item.get("wallet_id", "unknown"),
-                        "Risk Score": f"{float(item.get('final_risk_score', 0.0)):.1f}",
-                        "Confidence": item.get("confidence_label", "Unknown"),
-                        "Pattern Hint": item.get("pattern_hint", "unknown"),
-                        "Forensic Reason Preview": reason_preview,
-                    }
-                )
+    # --- TAB 3: CASE DETAIL ---
+    with tab_case:
+        render_case_detail_tab(filtered_evidence if filtered_evidence else all_evidence)
 
-            df_alerts = pd.DataFrame(table_rows)
+    # --- TAB 4: NETWORK ---
+    with tab_network:
+        render_network_tab(filtered_evidence if filtered_evidence else all_evidence)
 
-            selection_event = st.dataframe(
-                df_alerts,
-                use_container_width=True,
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="alerts_dataframe",
-            )
+    # --- TAB 5: MODEL INSIGHTS ---
+    with tab_models:
+        render_model_insights_tab(all_evidence)
 
-            selected_idx = 0
-            selected_rows = []
-            if selection_event and hasattr(selection_event, "selection"):
-                selected_rows = getattr(selection_event.selection, "rows", [])
-            elif isinstance(selection_event, dict):
-                selected_rows = selection_event.get("selection", {}).get("rows", [])
+    # --- TAB 6: EVALUATION ---
+    with tab_eval:
+        render_evaluation_tab(all_evidence)
 
-            if selected_rows and len(selected_rows) > 0:
-                selected_idx = selected_rows[0]
-                if selected_idx >= len(filtered_evidence):
-                    selected_idx = 0
 
-            selected_wallet_record = filtered_evidence[selected_idx]
+def _render_alert_queue_tab(filtered_evidence: list[dict], total_count: int) -> None:
+    """Render Tab 2: Alert Queue sortable table with CSV export."""
+    st.markdown("### 🚨 Ranked Forensic Alert Queue")
+    st.caption(f"Showing {len(filtered_evidence)} of {total_count} ranked wallet entities matching active filter criteria.")
 
-            st.markdown("---")
+    if not filtered_evidence:
+        st.info("No alert records match the active sidebar filters. Try adjusting threshold sliders or search keywords.")
+        return
 
-            st.markdown(
-                f"### 🔎 Evidence Inspection: `{selected_wallet_record.get('wallet_id', '')}`"
-            )
+    # Build queue table data
+    table_records = []
+    csv_records = []
 
-            col_detail, col_graph = st.columns([1, 1], gap="medium")
+    for item in filtered_evidence:
+        wallet_id = item.get("wallet_id", "unknown")
+        score = float(item.get("final_risk_score", 0.0))
+        band = risk_band_for_score(score)
+        conf = item.get("confidence_label", "Unknown")
+        pat = item.get("pattern_hint", "unknown")
+        reason = str(item.get("reason_sentence", ""))
 
-            with col_detail:
-                render_wallet_detail(selected_wallet_record)
+        preview = reason[:85] + "..." if len(reason) > 88 else reason
 
-            with col_graph:
-                render_subgraph(selected_wallet_record)
+        table_records.append(
+            {
+                "Wallet ID (Target Entity)": wallet_id,
+                "Risk Score": f"{score:.1f}",
+                "Severity Band": band,
+                "Confidence": conf,
+                "Pattern Hint": pat,
+                "Forensic Reason Finding": preview,
+            }
+        )
 
-    # --- TAB 2: NETWORK RISK ANALYTICS ---
-    with tab_analytics:
-        render_analytics_view(all_evidence)
+        csv_records.append(
+            {
+                "wallet_id": wallet_id,
+                "final_risk_score": score,
+                "severity_band": band,
+                "confidence_label": conf,
+                "pattern_hint": pat,
+                "reason_sentence": reason,
+            }
+        )
 
-    # --- TAB 3: MULTI-ENTITY COMPARATOR ---
-    with tab_compare:
-        render_comparator_view(all_evidence)
+    df_queue = pd.DataFrame(table_records)
 
-    # --- TAB 4: PIPELINE DIAGNOSTICS ---
-    with tab_diagnostics:
-        render_diagnostics_view(all_evidence)
+    # Render formatted table
+    st.dataframe(
+        df_queue,
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    # CSV Export Button
+    df_csv = pd.DataFrame(csv_records)
+    csv_bytes = df_csv.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="📥 Export Alert Queue (.csv)",
+        data=csv_bytes,
+        file_name="forensic_alert_queue.csv",
+        mime="text/csv",
+    )
 
 
 if __name__ == "__main__":

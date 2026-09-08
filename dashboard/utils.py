@@ -1,4 +1,4 @@
-"""Shared utility functions for the Bitcoin transaction forensics dashboard."""
+"""Shared utility functions and design system constants for the Bitcoin forensics dashboard."""
 
 from __future__ import annotations
 
@@ -7,21 +7,57 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-# Standard color palette for confidence labels
-CONFIDENCE_COLORS: dict[str, str] = {
-    "high": "#E53E3E",    # Red / High risk
-    "medium": "#DD6B20",  # Orange / Medium risk
-    "low": "#38A169",     # Green / Low risk
+# Visual Design Tokens from ANTIGRAVITY_DASHBOARD_BRIEF.md
+DESIGN_TOKENS = {
+    "bg": "#0B1220",             # App background
+    "surface": "#131B2E",        # Card/table background
+    "surface_raised": "#1A2438", # Table headers, hover
+    "border": "#1F2A44",         # Borders and outlines
+    "text": "#E8E6DE",           # Primary text
+    "text_muted": "#94A3B8",     # Muted / labels
+    "accent": "#C8973B",         # Gold accent for headers/highlights
+    "accent_hover": "#DDAE55",
+    "risk_low": "#5B7A6B",       # Muted green (<40)
+    "risk_medium": "#C8973B",    # Gold (40-69)
+    "risk_high": "#B8562E",      # Burnt orange (70-89)
+    "risk_critical": "#8B2E2E",  # Dark red (>=90)
 }
-DEFAULT_COLOR = "#718096"  # Slate / Unknown
+
+CONFIDENCE_COLORS: dict[str, str] = {
+    "critical": DESIGN_TOKENS["risk_critical"],
+    "high": DESIGN_TOKENS["risk_high"],
+    "medium": DESIGN_TOKENS["risk_medium"],
+    "low": DESIGN_TOKENS["risk_low"],
+}
+DEFAULT_COLOR = DESIGN_TOKENS["text_muted"]
+
+
+def risk_band_for_score(score: float) -> str:
+    """Return risk severity band name for a 0-100 risk score."""
+    s = float(score)
+    if s >= 90.0:
+        return "Critical"
+    if s >= 70.0:
+        return "High"
+    if s >= 40.0:
+        return "Medium"
+    return "Low"
+
+
+def risk_color(score_or_label: float | str | None) -> str:
+    """Return hex color corresponding to a risk score or label."""
+    if score_or_label is None:
+        return DEFAULT_COLOR
+    if isinstance(score_or_label, (int, float)):
+        band = risk_band_for_score(score_or_label)
+        return CONFIDENCE_COLORS.get(band.lower(), DEFAULT_COLOR)
+    normalized = str(score_or_label).strip().lower()
+    return CONFIDENCE_COLORS.get(normalized, DEFAULT_COLOR)
 
 
 def confidence_color(label: str | None) -> str:
-    """Return a hex color string corresponding to a confidence level."""
-    if not label:
-        return DEFAULT_COLOR
-    normalized = str(label).strip().casefold()
-    return CONFIDENCE_COLORS.get(normalized, DEFAULT_COLOR)
+    """Alias for risk_color to maintain backward compatibility with tests."""
+    return risk_color(label)
 
 
 def load_evidence_packages(path: str = "data/evidence_packages.json") -> list[dict[str, Any]]:
@@ -73,10 +109,11 @@ def filter_alerts(
         if score < min_score:
             continue
 
-        # Check confidence label
+        # Check confidence label / risk band
         if normalized_labels:
             label = str(item.get("confidence_label", "")).strip().casefold()
-            if label not in normalized_labels:
+            band = risk_band_for_score(score).casefold()
+            if label not in normalized_labels and band not in normalized_labels:
                 continue
 
         # Check pattern hint
@@ -150,6 +187,13 @@ def compute_network_summary_stats(evidence_list: list[dict[str, Any]]) -> dict[s
         return {
             "total_wallets": 0,
             "avg_risk_score": 0.0,
+            "max_risk_score": 0.0,
+            "min_risk_score": 0.0,
+            "total_flagged_volume_btc": 0.0,
+            "critical_count": 0,
+            "high_count": 0,
+            "medium_count": 0,
+            "low_count": 0,
             "pattern_counts": {},
             "confidence_counts": {},
             "country_counts": {},
@@ -161,8 +205,24 @@ def compute_network_summary_stats(evidence_list: list[dict[str, Any]]) -> dict[s
     confidence_counts: dict[str, int] = {}
     country_counts: dict[str, int] = {}
     high_risk_geo_count = 0
+    total_volume_btc = 0.0
+
+    critical_count = 0
+    high_count = 0
+    medium_count = 0
+    low_count = 0
 
     for item in evidence_list:
+        score = float(item.get("final_risk_score", 0.0))
+        if score >= 90.0:
+            critical_count += 1
+        elif score >= 70.0:
+            high_count += 1
+        elif score >= 40.0:
+            medium_count += 1
+        else:
+            low_count += 1
+
         pat = str(item.get("pattern_hint", "unknown"))
         pattern_counts[pat] = pattern_counts.get(pat, 0) + 1
 
@@ -170,6 +230,9 @@ def compute_network_summary_stats(evidence_list: list[dict[str, Any]]) -> dict[s
         confidence_counts[conf] = confidence_counts.get(conf, 0) + 1
 
         sub = item.get("subgraph", {})
+        sub_metrics = extract_subgraph_metrics(sub)
+        total_volume_btc += sub_metrics["total_inflow_btc"]
+
         for node in sub.get("nodes", []):
             if str(node.get("type", "")).lower() == "ip":
                 country = str(node.get("country", "Unknown"))
@@ -182,6 +245,11 @@ def compute_network_summary_stats(evidence_list: list[dict[str, Any]]) -> dict[s
         "avg_risk_score": round(sum(scores) / len(scores), 2) if scores else 0.0,
         "max_risk_score": max(scores) if scores else 0.0,
         "min_risk_score": min(scores) if scores else 0.0,
+        "total_flagged_volume_btc": round(total_volume_btc, 4),
+        "critical_count": critical_count,
+        "high_count": high_count,
+        "medium_count": medium_count,
+        "low_count": low_count,
         "pattern_counts": pattern_counts,
         "confidence_counts": confidence_counts,
         "country_counts": country_counts,
@@ -196,8 +264,9 @@ def generate_forensic_dossier_markdown(
 ) -> str:
     """Generate a formal forensic audit case dossier in Markdown format."""
     wallet_id = evidence.get("wallet_id", "Unknown")
-    score = evidence.get("final_risk_score", 0.0)
+    score = float(evidence.get("final_risk_score", 0.0))
     label = evidence.get("confidence_label", "Unknown")
+    band = risk_band_for_score(score)
     reason = evidence.get("reason_sentence", "")
     pattern = evidence.get("pattern_hint", "unknown")
     shap_items = evidence.get("shap_explanation", [])
@@ -206,11 +275,11 @@ def generate_forensic_dossier_markdown(
     sub_metrics = extract_subgraph_metrics(evidence.get("subgraph", {}))
 
     md = [
-        f"# 🛡️ BITCOIN FORENSICS AUDIT CASE DOSSIER",
+        f"# 🛡️ BITCOIN FORENSICS CASE FILE",
         f"**Target Entity (Wallet ID):** `{wallet_id}`  ",
         f"**Generated:** {now}  ",
-        f"**Case Triage Status:** `{triage_status.upper()}`  ",
-        f"**Assigned Investigator Risk Score:** **{score:.1f} / 100** ({label} Confidence)",
+        f"**Case Status:** `{triage_status.upper()}`  ",
+        f"**Risk Severity Band:** **{band.upper()} ({score:.1f} / 100)** — {label} Confidence",
         "",
         "---",
         "",
@@ -219,7 +288,7 @@ def generate_forensic_dossier_markdown(
         "",
         "## 2. Behavioral Topology & Pattern Classification",
         f"- **Classified Pattern:** `{pattern}`",
-        f"- **Associated Transaction Nodes:** {sub_metrics['tx_count']}",
+        f"- **Associated Transaction Hubs:** {sub_metrics['tx_count']}",
         f"- **Associated Counterparty Wallets:** {sub_metrics['wallet_count']}",
         f"- **Broadcast IP Endpoints:** {sub_metrics['ip_count']}",
         f"- **Estimated Subgraph Volume:** {sub_metrics['total_inflow_btc']} BTC Inflow | {sub_metrics['total_outflow_btc']} BTC Outflow",

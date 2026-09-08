@@ -1,4 +1,4 @@
-"""Pipeline diagnostics, phase execution benchmarks, and system health view."""
+"""Evaluation metrics and pipeline diagnostics view strictly adhering to honest reporting."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from dashboard.utils import DESIGN_TOKENS
+
 PHASE_DESCRIPTIONS: dict[str, str] = {
     "phase_1_dataset": "Synthetic Dataset Generation (Transaction traffic generator)",
     "phase_2_ingestion": "Format-Agnostic Ingestion (CSV/JSON/XML parsing & validation)",
@@ -18,24 +20,43 @@ PHASE_DESCRIPTIONS: dict[str, str] = {
     "phase_5_features": "Feature Engineering & Preprocessing (Standardization & pipeline)",
     "phase_6_models": "ML Modeling & Community Scoring (Isolation Forest & Louvain)",
     "phase_7_explainability": "Explainability & Packaging (SHAP kernel & evidence json)",
-    "phase_8_dashboard": "Forensics Dashboard (Streamlit interactive console)",
+    "phase_8_dashboard": "Forensics Dashboard (Streamlit case file console)",
 }
 
 
-def render_diagnostics_view(evidence_list: list[dict[str, Any]]) -> None:
-    """Render pipeline health metrics, phase timing durations, and system telemetry."""
-    st.markdown("### ⏱️ Pipeline Health & Diagnostics")
-    st.caption("Execution benchmarks, phase timing breakdown, and offline environment telemetry.")
+def render_evaluation_tab(evidence_list: list[dict[str, Any]]) -> None:
+    """Render Tab 6: Evaluation metrics and pipeline execution diagnostics."""
+    st.markdown("### 📊 Pipeline Evaluation & Empirical Diagnostics")
+    st.caption("Verification benchmarks, timing durations, and honest evaluation status against ground truth.")
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Active Evidence Packages", len(evidence_list))
-    col2.metric("Python Version", f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
-    col3.metric("System Mode", "Offline Forensics")
+    eval_report_path = Path("data/evaluation_report.txt")
+    ground_truth_path = Path("data/ground_truth/ground_truth.csv")
+    error_analysis_path = Path("data/error_analysis.json")
 
-    st.markdown("---")
+    # 1. Ground Truth & Evaluation Status Banner (Honest Policy)
+    if eval_report_path.is_file() and ground_truth_path.is_file():
+        st.success("✅ Ground truth dataset loaded and evaluation report generated.")
+        st.text(eval_report_path.read_text(encoding="utf-8"))
+    else:
+        st.markdown(
+            f"""
+            <div style="background-color: {DESIGN_TOKENS['surface_raised']}; border: 1px solid {DESIGN_TOKENS['border']}; border-left: 4px solid {DESIGN_TOKENS['accent']}; border-radius: 6px; padding: 16px 20px; margin-bottom: 20px;">
+                <div style="font-weight: bold; color: {DESIGN_TOKENS['accent']}; font-size: 1.05rem; margin-bottom: 6px;">
+                    ℹ️ Evaluation Metrics: Not Available (Offline Test Environment)
+                </div>
+                <div style="color: {DESIGN_TOKENS['text_muted']}; font-size: 0.92rem; line-height: 1.5;">
+                    End-to-end evaluation metrics (Precision, Recall, F1, ROC-AUC) are not displayed because a verified 
+                    labeled <code>data/ground_truth/ground_truth.csv</code> file is not present in this local checkout.
+                    <br><br>
+                    <em>Per the project's documentation and honest reporting policy in <code>WRITEUP.md</code>, synthetic or fabricated metrics are strictly avoided.</em>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # Pipeline Phase Timings
-    st.markdown("#### 🕒 Pipeline Execution Timings")
+    # 2. Pipeline Phase Execution Timings
+    st.markdown("#### 🕒 Pipeline Execution Timings & Benchmarks")
     timing_path = Path("data/pipeline_timing.json")
     timing_data: dict[str, Any] = {}
 
@@ -69,25 +90,26 @@ def render_diagnostics_view(evidence_list: list[dict[str, Any]]) -> None:
 
     st.markdown("---")
 
-    # Forensics File System Health
+    # 3. Repository File System Integrity
     st.markdown("#### 📁 Forensics Data Repository Integrity")
     repo_checks = [
-        ("data/evidence_packages.json", "Forensics evidence packages output", Path("data/evidence_packages.json").exists()),
-        ("data/pipeline_timing.json", "Pipeline execution benchmark records", Path("data/pipeline_timing.json").exists()),
-        ("geoip/GeoLite2-City.mmdb", "Offline MaxMind City Database", Path("geoip/GeoLite2-City.mmdb").exists()),
-        ("data/raw/transactions.csv", "Raw transaction ingestion source", Path("data/raw/transactions.csv").exists()),
+        ("data/evidence_packages.json", "Evidence packages output", Path("data/evidence_packages.json").exists()),
+        ("data/pipeline_timing.json", "Execution benchmarks", Path("data/pipeline_timing.json").exists()),
+        ("geoip/GeoLite2-City.mmdb", "MaxMind City Database", Path("geoip/GeoLite2-City.mmdb").exists()),
+        ("data/raw/transactions.csv", "Raw transaction source", Path("data/raw/transactions.csv").exists()),
     ]
 
     check_cols = st.columns(len(repo_checks))
     for col, (path_str, desc, exists) in zip(check_cols, repo_checks):
         with col:
             icon = "✅" if exists else "ℹ️"
+            border_c = DESIGN_TOKENS["border"] if exists else DESIGN_TOKENS["accent"]
             st.markdown(
                 f"""
-                <div style="background-color: #1A202C; border: 1px solid #2D3748; border-radius: 6px; padding: 10px; text-align: center;">
-                    <div style="font-size: 1.3rem;">{icon}</div>
-                    <strong style="color: #E2E8F0; font-size: 0.85rem; word-break: break-all;">{path_str}</strong>
-                    <div style="color: #A0AEC0; font-size: 0.75rem; margin-top: 4px;">{desc}</div>
+                <div style="background-color: {DESIGN_TOKENS['surface']}; border: 1px solid {border_c}; border-radius: 6px; padding: 12px; text-align: center;">
+                    <div style="font-size: 1.4rem;">{icon}</div>
+                    <strong style="color: {DESIGN_TOKENS['text']}; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; word-break: break-all;">{path_str}</strong>
+                    <div style="color: {DESIGN_TOKENS['text_muted']}; font-size: 0.75rem; margin-top: 4px;">{desc}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
