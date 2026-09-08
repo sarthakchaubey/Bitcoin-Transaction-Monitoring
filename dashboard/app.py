@@ -10,7 +10,6 @@ import streamlit as st
 
 from dashboard.analytics_view import render_model_insights_tab, render_overview_tab
 from dashboard.detail_view import render_case_detail_tab
-from dashboard.diagnostics_view import render_evaluation_tab
 from dashboard.graph_view import render_network_tab
 from dashboard.utils import (
     DESIGN_TOKENS,
@@ -208,15 +207,14 @@ def main() -> None:
         reverse=True,
     )
 
-    # 6. Six Required Tabs from ANTIGRAVITY_DASHBOARD_BRIEF.md
-    tab_overview, tab_queue, tab_case, tab_network, tab_models, tab_eval = st.tabs(
+    # 6. Dashboard Investigation Tabs
+    tab_overview, tab_queue, tab_case, tab_network, tab_models = st.tabs(
         [
             "📋 Overview",
             "🚨 Alert Queue",
             "📁 Case Detail",
             "🕸️ Network",
             "🧠 Model Insights",
-            "📊 Evaluation",
         ]
     )
 
@@ -239,10 +237,6 @@ def main() -> None:
     # --- TAB 5: MODEL INSIGHTS ---
     with tab_models:
         render_model_insights_tab(all_evidence)
-
-    # --- TAB 6: EVALUATION ---
-    with tab_eval:
-        render_evaluation_tab(all_evidence)
 
 
 def _render_alert_queue_tab(filtered_evidence: list[dict], total_count: int) -> None:
