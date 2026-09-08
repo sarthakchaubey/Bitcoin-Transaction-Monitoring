@@ -63,7 +63,22 @@ python -m evaluation.generate_plots
 
 These commands create `data/evaluation_report.txt`, `data/pipeline_timing.json`, `data/error_analysis.json`, and PNG charts under `data/plots/`.
 
-### 5. Launch the dashboard
+### 5. Launch the React + TypeScript Web Frontend (Recommended)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open **`http://localhost:5173/`** to access the high-performance React + TypeScript investigation console featuring:
+- **Canvas Particle HUD & Telemetry**: Live physics graph simulation with interactive mouse repulsion.
+- **Dynamic Metric Cards & Triage Stream**: Instant client-side search across wallet IDs and pattern signatures.
+- **Interactive SHAP Attribution**: Directional risk impact bars and exact delta values.
+- **Topological Subgraph Explorer**: Force-directed multi-hop transaction flow and broadcast IP geolocations with zoom, pan, and dragging.
+- **Model Insights & Export Tools**: Global feature rankings, pattern distributions, CSV export, and Markdown forensic dossier generation.
+
+### 6. Launch the Python Streamlit Reference Dashboard
 
 ```bash
 streamlit run dashboard/app.py
@@ -74,12 +89,6 @@ Or:
 ```bash
 python -m streamlit run dashboard/app.py
 ```
-
-The dashboard allows investigators to:
-- Filter alerts by risk score threshold (0–100), confidence level (High, Medium, Low), behavioral patterns, and wallet ID search.
-- View key triage metrics (analyzed wallets, flagged alerts, severity breakdown).
-- Inspect forensic reasoning findings and SHAP feature contribution charts.
-- Interactively explore local transaction and broadcast IP subgraphs rendered via Pyvis.
 
 ## Team Name
 
