@@ -8,6 +8,10 @@ data/ground_truth/
 data/plots/
 *.mmdb
 
+# Keep the serverless deployment dependency-free. The root requirements.txt
+# contains heavyweight offline ML dependencies used by the local pipeline.
+requirements.txt
+
 # Development-only files
 notebooks/
 tests/

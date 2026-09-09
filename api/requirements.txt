@@ -1,0 +1,2 @@
+# The Vercel health endpoint uses only Python's standard library.
+# Keep the full offline ML requirements.txt out of this serverless bundle.

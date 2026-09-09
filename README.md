@@ -80,7 +80,7 @@ Open **`http://localhost:5173/`** to access the high-performance React + TypeScr
 
 ### 6. Deploy the Vercel API endpoint
 
-The repository includes `vercel.json` and `api/index.py` so Vercel uses an explicit Python serverless entrypoint instead of treating the CLI pipeline in `main.py` as the deployment handler.
+The repository includes `vercel.json` and `api/index.py` so Vercel uses an explicit Python serverless entrypoint instead of treating the CLI pipeline in `main.py` as the deployment handler. The API has its own minimal `api/requirements.txt`; `.vercelignore` excludes the heavyweight root ML requirements from this deployment so PyTorch is not bundled into the function.
 
 Using the Vercel CLI:
 
