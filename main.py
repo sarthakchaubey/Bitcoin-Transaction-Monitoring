@@ -27,6 +27,24 @@ from models.evaluate import evaluate_against_ground_truth
 from models.graph_detector import detect_communities, score_communities
 
 
+def app(environ, start_response):
+    """Return a lightweight Vercel health response for the CLI-oriented project."""
+    import json
+
+    payload = {
+        "service": "bitcoin-transaction-monitoring",
+        "status": "ok",
+        "message": "Use Streamlit for the interactive dashboard.",
+        "dashboard_command": "streamlit run dashboard/app.py",
+    }
+    body = json.dumps(payload).encode("utf-8")
+    start_response(
+        "200 OK",
+        [("Content-Type", "application/json; charset=utf-8"), ("Content-Length", str(len(body)))],
+    )
+    return [body]
+
+
 def load_or_generate_dataset():
     """Load an existing dataset or generate synthetic data in Phase 1."""
     print("[Phase 1] not yet implemented")
