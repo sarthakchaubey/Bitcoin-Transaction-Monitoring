@@ -9,9 +9,10 @@ interface OverviewTabProps {
   evidenceList: EvidencePackage[];
   stats: NetworkSummaryStats;
   onInspect: (pkg: EvidencePackage) => void;
+  onNavigateToQueue?: () => void;
 }
 
-export const OverviewTab: React.FC<OverviewTabProps> = ({ evidenceList, stats, onInspect }) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({ evidenceList, stats, onInspect, onNavigateToQueue }) => {
   // Compute histogram bins for risk scores
   const scoreBins = Array(5).fill(0);
   evidenceList.forEach((e) => {
@@ -42,7 +43,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ evidenceList, stats, o
 
       {/* 3. Live High-Risk Triage Stream */}
       <div className="card" style={{ marginBottom: '28px' }}>
-        <TriageStream evidenceList={evidenceList} onInspect={onInspect} />
+        <TriageStream evidenceList={evidenceList} onInspect={onInspect} onNavigateToQueue={onNavigateToQueue} />
       </div>
 
       {/* 4. Deep Analytical Distribution Charts */}

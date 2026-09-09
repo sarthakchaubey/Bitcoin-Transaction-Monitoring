@@ -108,6 +108,7 @@ export function App() {
               evidenceList={filteredEvidence}
               stats={summaryStats}
               onInspect={handleInspectEntity}
+              onNavigateToQueue={() => setActiveTab('queue')}
             />
           )}
 
