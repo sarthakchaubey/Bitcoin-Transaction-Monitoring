@@ -80,7 +80,7 @@ Open **`http://localhost:5173/`** to access the high-performance React + TypeScr
 
 ### 6. Deploy the Vercel API endpoint
 
-The repository includes `vercel.json` and `api/index.py` so Vercel uses an explicit Python serverless entrypoint instead of treating the CLI pipeline in `main.py` as the deployment handler. The API has its own minimal `api/requirements.txt`; `.vercelignore` excludes the heavyweight root ML requirements from this deployment so PyTorch is not bundled into the function.
+The repository includes `vercel.json` configured to build the React/Vite investigation frontend from `frontend/` and publish `frontend/dist`. The API health endpoint remains available under `/api`; it has its own minimal `api/requirements.txt`, while `.vercelignore` excludes the heavyweight root ML requirements so PyTorch is not bundled into the serverless function.
 
 Using the Vercel CLI:
 
@@ -90,7 +90,7 @@ vercel login
 vercel --prod
 ```
 
-Or import the GitHub repository in the Vercel dashboard and deploy with the default settings. The deployed endpoint returns a JSON health response and deployment metadata. The offline forensic pipeline remains a local/batch workflow and should not be executed inside a short-lived serverless request.
+Or import the GitHub repository in the Vercel dashboard and deploy with the default settings. The deployed root URL serves the React investigation console. The `/api` endpoint returns JSON health metadata. The offline forensic pipeline remains a local/batch workflow and should not be executed inside a short-lived serverless request.
 
 The Streamlit dashboard is not a native Vercel workload. Deploy it separately on Streamlit Community Cloud or another host that supports persistent Streamlit processes:
 
