@@ -78,16 +78,24 @@ Open **`http://localhost:5173/`** to access the high-performance React + TypeScr
 - **Topological Subgraph Explorer**: Force-directed multi-hop transaction flow and broadcast IP geolocations with zoom, pan, and dragging.
 - **Model Insights & Export Tools**: Global feature rankings, pattern distributions, CSV export, and Markdown forensic dossier generation.
 
-### 6. Launch the Python Streamlit Reference Dashboard
+### 6. Deploy the Vercel API endpoint
+
+The repository includes `vercel.json` and `api/index.py` so Vercel uses an explicit Python serverless entrypoint instead of treating the CLI pipeline in `main.py` as the deployment handler.
+
+Using the Vercel CLI:
+
+```bash
+npm install --global vercel
+vercel login
+vercel --prod
+```
+
+Or import the GitHub repository in the Vercel dashboard and deploy with the default settings. The deployed endpoint returns a JSON health response and deployment metadata. The offline forensic pipeline remains a local/batch workflow and should not be executed inside a short-lived serverless request.
+
+The Streamlit dashboard is not a native Vercel workload. Deploy it separately on Streamlit Community Cloud or another host that supports persistent Streamlit processes:
 
 ```bash
 streamlit run dashboard/app.py
-```
-
-Or:
-
-```bash
-python -m streamlit run dashboard/app.py
 ```
 
 ## Team Name

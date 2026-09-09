@@ -1,0 +1,14 @@
+# Local and generated data
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+data/raw/
+data/ground_truth/
+data/plots/
+*.mmdb
+
+# Development-only files
+notebooks/
+tests/
+.git/
