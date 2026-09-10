@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Cpu, Database, Activity, Radio } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Cpu, Database, Activity, Radio, ShieldCheck } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 interface NodeParticle {
   x: number;
@@ -12,6 +14,7 @@ interface NodeParticle {
 
 export const CanvasGraphHUD: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -25,32 +28,41 @@ export const CanvasGraphHUD: React.FC = () => {
     const resizeCanvas = () => {
       if (canvas.parentElement) {
         canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
+        canvas.height = canvas.parentElement.clientHeight || 230;
       }
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Color definitions
-    const colors = {
-      wallet: '#3182CE',
-      tx: '#94A3B8',
-      ip: '#B8562E',
-      target: '#8B2E2E',
-    };
+    // Color definitions based on active theme
+    const colors = isDark
+      ? {
+          wallet: '#38BDF8',
+          tx: '#94A3B8',
+          ip: '#FB923C',
+          target: '#EF4444',
+          line: 'rgba(51, 65, 85, ',
+        }
+      : {
+          wallet: '#0284C7',
+          tx: '#64748B',
+          ip: '#EA580C',
+          target: '#DC2626',
+          line: 'rgba(203, 213, 225, ',
+        };
 
     const nodeTypes: ('wallet' | 'tx' | 'ip' | 'target')[] = ['wallet', 'tx', 'ip', 'target'];
     const nodes: NodeParticle[] = [];
 
-    const numNodes = Math.max(25, Math.floor(canvas.width / 35));
+    const numNodes = Math.max(28, Math.floor(canvas.width / 32));
     for (let i = 0; i < numNodes; i++) {
       nodes.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.7,
-        vy: (Math.random() - 0.5) * 0.7,
-        radius: Math.random() * 3 + 2,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        radius: Math.random() * 2.5 + 2,
         type: nodeTypes[Math.floor(Math.random() * nodeTypes.length)],
       });
     }
@@ -83,16 +95,16 @@ export const CanvasGraphHUD: React.FC = () => {
         if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
         if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
 
-        // Gentle mouse repulsion
+        // Mouse interaction
         const dx = n.x - mouseX;
         const dy = n.y - mouseY;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 90) {
-          n.x += (dx / dist) * 1.6;
-          n.y += (dy / dist) * 1.6;
+          n.x += (dx / dist) * 1.5;
+          n.y += (dy / dist) * 1.5;
         }
 
-        // Draw particle node
+        // Draw node
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
         ctx.fillStyle = colors[n.type];
@@ -102,12 +114,12 @@ export const CanvasGraphHUD: React.FC = () => {
         for (let j = i + 1; j < nodes.length; j++) {
           const n2 = nodes[j];
           const d = Math.hypot(n.x - n2.x, n.y - n2.y);
-          if (d < 115) {
+          if (d < 110) {
             ctx.beginPath();
             ctx.moveTo(n.x, n.y);
             ctx.lineTo(n2.x, n2.y);
-            ctx.strokeStyle = `rgba(31, 42, 68, ${1 - d / 115})`;
-            ctx.lineWidth = 0.8;
+            ctx.strokeStyle = `${colors.line}${1 - d / 110})`;
+            ctx.lineWidth = 0.75;
             ctx.stroke();
           }
         }
@@ -124,109 +136,67 @@ export const CanvasGraphHUD: React.FC = () => {
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [isDark]);
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '240px',
-        border: '1px solid var(--border)',
-        borderRadius: '8px',
-        background: 'radial-gradient(circle at 50% 50%, #152238 0%, var(--bg) 100%)',
-        overflow: 'hidden',
-        marginBottom: '22px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-      }}
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="relative w-full h-56 sm:h-60 rounded-xl border border-border bg-card overflow-hidden mb-6 shadow-card"
     >
       <canvas
         ref={canvasRef}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          display: 'block',
-        }}
+        className="absolute inset-0 w-full h-full block"
       />
 
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: '18px 22px',
-          background: 'linear-gradient(180deg, rgba(11, 18, 32, 0.3) 0%, rgba(11, 18, 32, 0.85) 100%)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-t from-background/90 via-background/40 to-transparent">
+        {/* Header HUD */}
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', fontWeight: 700 }}>
-              Autonomous Anomaly Telemetry
+            <div className="text-[11px] font-bold uppercase tracking-widest text-accent flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Autonomous Forensics Telemetry
             </div>
-            <h2 className="font-serif" style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>
-              🛡️ Bitcoin Forensics Live HUD
+            <h2 className="font-serif text-lg sm:text-2xl font-bold text-foreground mt-0.5">
+              Bitcoin Anomaly Live HUD
             </h2>
           </div>
 
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(19, 27, 46, 0.85)',
-              border: '1px solid var(--border)',
-              padding: '6px 12px',
-              borderRadius: '4px',
-              fontFamily: 'IBM Plex Mono, monospace',
-              fontSize: '0.78rem',
-              color: '#68D391',
-              boxShadow: '0 0 10px rgba(72, 187, 120, 0.15)',
-            }}
-          >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-border/80 bg-card/80 backdrop-blur-sm text-xs font-mono text-emerald-500 font-semibold shadow-sm">
             <div className="beacon-dot" />
-            TELEMETRY ACTIVE
+            <span>TELEMETRY ACTIVE</span>
           </div>
         </div>
 
-        <div
-          className="font-mono"
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '24px',
-            borderTop: '1px solid rgba(31, 42, 68, 0.7)',
-            paddingTop: '10px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Cpu size={14} color="var(--accent)" />
-            <span>ANOMALY ENGINE: <strong style={{ color: '#68D391' }}>ONLINE</strong></span>
+        {/* Bottom System Status Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-border/70 font-mono text-[11px] text-muted-foreground backdrop-blur-[2px]">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span className="truncate">
+              ANOMALY: <strong className="text-emerald-500 font-bold">ONLINE</strong>
+            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Database size={14} color="var(--accent)" />
-            <span>LOUVAIN CLUSTERING: <strong style={{ color: '#68D391' }}>SYNCED</strong></span>
+          <div className="flex items-center gap-2">
+            <Database className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span className="truncate">
+              LOUVAIN: <strong className="text-emerald-500 font-bold">SYNCED</strong>
+            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Activity size={14} color="var(--accent)" />
-            <span>EXPLAINABILITY: <strong style={{ color: 'var(--accent)' }}>SHAP v0.42</strong></span>
+          <div className="flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span className="truncate">
+              EXPLAINABILITY: <strong className="text-accent font-bold">SHAP v0.42</strong>
+            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Radio size={14} color="var(--accent)" />
-            <span>PIPELINE: <strong style={{ color: 'var(--text)' }}>OFFLINE FORENSICS</strong></span>
+          <div className="flex items-center gap-2">
+            <Radio className="h-3.5 w-3.5 text-accent shrink-0" />
+            <span className="truncate">
+              PIPELINE: <strong className="text-foreground font-bold">OFFLINE AML</strong>
+            </span>
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

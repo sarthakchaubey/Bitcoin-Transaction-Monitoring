@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import type { EvidencePackage } from '../../types/forensics';
-import { RiskPill } from '../common/RiskPill';
-import { ShapBarChart } from '../common/ShapBarChart';
-import { generateMarkdownDossier } from '../../data/evidenceData';
-import { ShieldAlert, Download, Copy, Code, Check, Network, Layers, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
+import type { EvidencePackage } from '@/types/forensics';
+import { RiskPill } from '@/components/common/RiskPill';
+import { ShapBarChart } from '@/components/common/ShapBarChart';
+import { generateMarkdownDossier } from '@/data/evidenceData';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ShieldAlert, Download, Copy, Code, Check, Network, Layers, Sparkles, Tag, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CaseDetailTabProps {
   evidenceList: EvidencePackage[];
@@ -28,9 +33,10 @@ export const CaseDetailTab: React.FC<CaseDetailTabProps> = ({
 
   if (!currentPkg) {
     return (
-      <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-        No case records available.
-      </div>
+      <Card className="text-center py-16 px-4">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-40" />
+        <h3 className="font-serif text-base font-bold text-foreground">No case records available</h3>
+      </Card>
     );
   }
 
@@ -57,252 +63,254 @@ export const CaseDetailTab: React.FC<CaseDetailTabProps> = ({
   const edges = currentPkg.subgraph?.edges || [];
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-5"
+    >
       {/* Wallet Selector Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-2">
         <div>
-          <h2 className="font-serif" style={{ fontSize: '1.4rem', color: 'var(--text)' }}>
-            📁 Forensic Case-File Dossier
+          <h2 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <span>📁 Forensic Case Dossier</span>
           </h2>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Comprehensive Explainable AI signal breakdown & topological evidence
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Comprehensive Explainable AI signal breakdown & topological graph evidence
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <select
-            className="search-input"
-            value={currentPkg.wallet_id}
-            onChange={(e) => onSelectWallet(e.target.value)}
-            style={{ width: '320px', cursor: 'pointer' }}
-          >
-            {evidenceList.map((e) => (
-              <option key={e.wallet_id} value={e.wallet_id}>
-                {e.wallet_id.substring(0, 16)}... ({Number(e.final_risk_score).toFixed(1)} / 100)
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <select
+              className="h-9 px-3 py-1 text-xs font-mono rounded-md border border-input bg-card-raised text-foreground focus:outline-none focus:ring-1 focus:ring-accent max-w-xs sm:max-w-sm cursor-pointer shadow-sm"
+              value={currentPkg.wallet_id}
+              onChange={(e) => onSelectWallet(e.target.value)}
+            >
+              {evidenceList.map((e) => (
+                <option key={e.wallet_id} value={e.wallet_id} className="bg-card text-foreground">
+                  {e.wallet_id.substring(0, 16)}... (Score: {Number(e.final_risk_score).toFixed(1)})
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <button className="btn" onClick={handleDownloadDossier}>
-            <Download size={15} /> Export (.md)
-          </button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadDossier}
+            className="text-xs h-9"
+          >
+            <Download className="h-4 w-4 text-accent" />
+            Export (.md)
+          </Button>
         </div>
       </div>
 
       {/* Target Entity Overview Card */}
-      <div className="card" style={{ borderTop: '3px solid var(--accent)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
-              Target Entity Wallet ID
+      <Card className="border-t-2 border-t-accent shadow-card border-border/80">
+        <CardContent className="p-5 sm:p-6 space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Target Entity Wallet ID
+              </div>
+              <div className="font-mono text-base sm:text-xl font-bold text-foreground break-all mt-1 select-all">
+                {currentPkg.wallet_id}
+              </div>
             </div>
-            <div className="font-mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)', wordBreak: 'break-all', marginTop: '2px' }}>
-              {currentPkg.wallet_id}
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <RiskPill score={score} />
+              <Badge variant="accent" className="font-mono text-xs flex items-center gap-1">
+                <Tag className="h-3 w-3" />
+                {currentPkg.pattern_hint || 'unknown'}
+              </Badge>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <RiskPill score={score} />
-            <div
-              className="font-mono"
-              style={{
-                backgroundColor: 'var(--surface-raised)',
-                border: '1px solid var(--border)',
-                padding: '4px 10px',
-                borderRadius: '4px',
-                fontSize: '0.8rem',
-                color: 'var(--accent)',
-              }}
-            >
-              🏷️ {currentPkg.pattern_hint || 'unknown'}
+          {/* Reason Centerpiece Callout */}
+          <div className="p-4 rounded-lg bg-card-raised border-l-4 border-accent border border-border/60 shadow-inner">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-accent uppercase tracking-wider mb-1.5">
+              <ShieldAlert className="h-4 w-4" />
+              Forensic Finding & Anomaly Narrative
             </div>
+            <p className="text-sm sm:text-base text-foreground leading-relaxed">
+              {currentPkg.reason_sentence}
+            </p>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Reason Centerpiece Callout */}
-        <div
-          style={{
-            backgroundColor: 'var(--surface-raised)',
-            borderLeft: '4px solid var(--accent)',
-            borderRadius: '4px',
-            padding: '16px',
-            marginTop: '18px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '0.76rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--accent)',
-              fontWeight: 700,
-              marginBottom: '6px',
-            }}
-          >
-            <ShieldAlert size={16} /> Forensic Finding & Anomaly Narrative
-          </div>
-          <div style={{ fontSize: '0.98rem', color: 'var(--text)', lineHeight: 1.6 }}>
-            {currentPkg.reason_sentence}
-          </div>
-        </div>
-      </div>
-
-      {/* Two Column Layout: SHAP Explanations & Behavioral Topology */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+      {/* Two Column Layout: SHAP Explanations & Topology */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* SHAP Feature Contribution Card */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={16} color="var(--accent)" />
-              <h3 className="font-serif" style={{ fontSize: '1.05rem', color: 'var(--text)' }}>
+        <Card className="shadow-card border-border/80">
+          <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm sm:text-base font-serif font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-accent" />
                 Explainable AI (SHAP) Drivers
-              </h3>
+              </CardTitle>
+              <span className="text-[11px] text-muted-foreground font-mono">Directional Impact</span>
             </div>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Directional Impact</span>
-          </div>
+          </CardHeader>
 
-          <ShapBarChart explanations={currentPkg.shap_explanation} />
+          <CardContent className="p-4 sm:p-5 space-y-4">
+            <ShapBarChart explanations={currentPkg.shap_explanation} />
 
-          {/* Structured Feature Value Table */}
-          <div style={{ marginTop: '18px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-            <div style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-              Attribution Value Matrix
-            </div>
-            <div className="data-table-container">
-              <table className="data-table" style={{ fontSize: '0.78rem' }}>
-                <thead>
-                  <tr>
-                    <th>Feature Name</th>
-                    <th>SHAP Value</th>
-                    <th>Direction</th>
-                    <th>Raw Observed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(currentPkg.shap_explanation || []).map((s, idx) => (
-                    <tr key={idx}>
-                      <td className="font-mono">{s.feature}</td>
-                      <td
-                        className="font-mono"
-                        style={{ color: s.direction === 'increases_risk' ? 'var(--risk-high)' : 'var(--risk-low)', fontWeight: 600 }}
-                      >
-                        {Number(s.shap_value) >= 0 ? '+' : ''}
-                        {Number(s.shap_value).toFixed(4)}
-                      </td>
-                      <td>{s.direction === 'increases_risk' ? '▲ Risk' : '▼ Mitigating'}</td>
-                      <td className="font-mono">{String(s.raw_value)}</td>
+            {/* Attribution Matrix Table */}
+            <div className="pt-3 border-t border-border/70 space-y-2">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                Attribution Value Matrix
+              </div>
+              <div className="overflow-x-auto rounded-md border border-border/60">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-card-raised/80 border-b border-border text-muted-foreground text-[10px] uppercase">
+                      <th className="p-2.5 pl-3">Feature Name</th>
+                      <th className="p-2.5">SHAP Value</th>
+                      <th className="p-2.5">Direction</th>
+                      <th className="p-2.5 pr-3">Observed</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/60 font-sans">
+                    {(currentPkg.shap_explanation || []).map((s, idx) => (
+                      <tr key={idx} className="hover:bg-card-raised/40">
+                        <td className="p-2.5 pl-3 font-mono font-medium text-foreground">{s.feature}</td>
+                        <td
+                          className={cn(
+                            'p-2.5 font-mono font-bold',
+                            s.direction === 'increases_risk' ? 'text-risk-high' : 'text-risk-low'
+                          )}
+                        >
+                          {Number(s.shap_value) >= 0 ? '+' : ''}
+                          {Number(s.shap_value).toFixed(4)}
+                        </td>
+                        <td className="p-2.5">
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 text-[11px] font-semibold',
+                              s.direction === 'increases_risk' ? 'text-risk-high' : 'text-risk-low'
+                            )}
+                          >
+                            {s.direction === 'increases_risk' ? (
+                              <ArrowUpRight className="h-3 w-3" />
+                            ) : (
+                              <ArrowDownRight className="h-3 w-3" />
+                            )}
+                            {s.direction === 'increases_risk' ? 'Risk' : 'Mitigating'}
+                          </span>
+                        </td>
+                        <td className="p-2.5 pr-3 font-mono text-muted-foreground">{String(s.raw_value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Behavioral Pattern Topology & Subgraph Summary */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={16} color="var(--accent)" />
-              <h3 className="font-serif" style={{ fontSize: '1.05rem', color: 'var(--text)' }}>
+        <Card className="shadow-card border-border/80">
+          <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm sm:text-base font-serif font-bold text-foreground flex items-center gap-2">
+                <Layers className="h-4 w-4 text-accent" />
                 Topology & Neighborhood Metrics
-              </h3>
+              </CardTitle>
+              {onNavigateToNetwork && (
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={() => onNavigateToNetwork(currentPkg.wallet_id)}
+                  className="text-xs h-7 gap-1.5"
+                >
+                  <Network className="h-3.5 w-3.5" />
+                  View Graph
+                </Button>
+              )}
             </div>
-            {onNavigateToNetwork && (
-              <button
-                className="btn btn-sm btn-accent"
-                onClick={() => onNavigateToNetwork(currentPkg.wallet_id)}
+          </CardHeader>
+
+          <CardContent className="p-4 sm:p-5 space-y-4">
+            {/* Stat Counters */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-lg bg-card-raised border border-border/60">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Connected Nodes
+                </div>
+                <div className="font-mono text-2xl font-bold text-foreground mt-1">
+                  {nodes.length}
+                </div>
+              </div>
+              <div className="p-3.5 rounded-lg bg-card-raised border border-border/60">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Transaction Edges
+                </div>
+                <div className="font-mono text-2xl font-bold text-accent mt-1">
+                  {edges.length}
+                </div>
+              </div>
+            </div>
+
+            {/* Behavioral Pattern Explanation */}
+            <div className="p-3.5 rounded-lg bg-card-raised/50 border border-border/60 text-xs leading-relaxed text-muted-foreground">
+              <strong className="text-foreground block mb-1">
+                Behavioral Signature Pattern:
+              </strong>
+              {currentPkg.pattern_hint === 'peeling_chain' &&
+                'Sequential transaction sequence where an address moves value incrementally through rapid consecutive change outputs.'}
+              {currentPkg.pattern_hint === 'mixing_service' &&
+                'High entropy transaction topology involving multiple aggregated inputs and split outputs designed to obfuscate origin.'}
+              {currentPkg.pattern_hint === 'rapid_burst' &&
+                'Sudden high-velocity transaction bursts concentrated within short temporal windows.'}
+              {currentPkg.pattern_hint === 'high_risk_jurisdiction' &&
+                'Broadcast transaction initiated from known high-risk sanctions-flagged or proxy IP networks.'}
+              {currentPkg.pattern_hint === 'structuring' &&
+                'Multiple sub-threshold round-amount transactions executed to evade detection filters.'}
+              {!['peeling_chain', 'mixing_service', 'rapid_burst', 'high_risk_jurisdiction', 'structuring'].includes(
+                currentPkg.pattern_hint
+              ) && 'Statistical multivariate outlier identified across temporal, volumetric, and topological graph dimensions.'}
+            </div>
+
+            {/* Raw JSON Inspect Toggle */}
+            <div className="pt-2 border-t border-border/70">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowJsonDrawer(!showJsonDrawer)}
+                className="w-full text-xs"
               >
-                <Network size={13} /> View in Graph
-              </button>
-            )}
-          </div>
+                <Code className="h-3.5 w-3.5" />
+                {showJsonDrawer ? 'Hide Raw Evidence JSON' : 'Inspect Raw Evidence JSON'}
+              </Button>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ backgroundColor: 'var(--surface-raised)', padding: '12px', borderRadius: '4px' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Connected Nodes</div>
-              <div className="font-mono" style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
-                {nodes.length}
-              </div>
+              {showJsonDrawer && (
+                <div className="mt-3 relative rounded-lg border border-border bg-background p-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyJson}
+                    className="absolute right-2.5 top-2.5 text-[11px] h-6 px-2"
+                  >
+                    {copiedJson ? (
+                      <Check className="h-3 w-3 text-emerald-500 mr-1" />
+                    ) : (
+                      <Copy className="h-3 w-3 mr-1" />
+                    )}
+                    {copiedJson ? 'Copied' : 'Copy'}
+                  </Button>
+                  <pre className="font-mono text-[11px] text-muted-foreground max-h-60 overflow-y-auto pt-4 leading-normal">
+                    {JSON.stringify(currentPkg, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
-            <div style={{ backgroundColor: 'var(--surface-raised)', padding: '12px', borderRadius: '4px' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Transaction Edges</div>
-              <div className="font-mono" style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent)' }}>
-                {edges.length}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '16px' }}>
-            <strong style={{ color: 'var(--text)' }}>Behavioral Signature Explanation:</strong>{' '}
-            {currentPkg.pattern_hint === 'peeling_chain' &&
-              'Sequential transaction sequence where an address moves value incrementally through rapid consecutive change outputs.'}
-            {currentPkg.pattern_hint === 'mixing_service' &&
-              'High entropy transaction topology involving multiple aggregated inputs and split outputs designed to obfuscate origin.'}
-            {currentPkg.pattern_hint === 'rapid_burst' &&
-              'Sudden high-velocity transaction bursts concentrated within short temporal windows.'}
-            {currentPkg.pattern_hint === 'high_risk_jurisdiction' &&
-              'Broadcast transaction initiated from known high-risk sanctions-flagged or proxy IP networks.'}
-            {currentPkg.pattern_hint === 'structuring' &&
-              'Multiple sub-threshold round-amount transactions executed to evade detection filters.'}
-            {!['peeling_chain', 'mixing_service', 'rapid_burst', 'high_risk_jurisdiction', 'structuring'].includes(
-              currentPkg.pattern_hint
-            ) && 'Statistical multivariate outlier identified across temporal, volumetric, and topological graph dimensions.'}
-          </div>
-
-          {/* Raw JSON Inspect Toggle */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-            <button
-              className="btn btn-sm"
-              onClick={() => setShowJsonDrawer(!showJsonDrawer)}
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              <Code size={14} /> {showJsonDrawer ? 'Hide Raw Evidence JSON' : 'Inspect Raw Evidence JSON'}
-            </button>
-
-            {showJsonDrawer && (
-              <div style={{ marginTop: '12px', position: 'relative' }}>
-                <button
-                  className="btn btn-sm"
-                  onClick={handleCopyJson}
-                  style={{ position: 'absolute', right: '10px', top: '10px', zIndex: 10 }}
-                >
-                  {copiedJson ? <Check size={12} color="#48BB78" /> : <Copy size={12} />}
-                  {copiedJson ? 'Copied' : 'Copy'}
-                </button>
-                <pre
-                  className="font-mono"
-                  style={{
-                    backgroundColor: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '4px',
-                    padding: '12px',
-                    fontSize: '0.74rem',
-                    color: '#A0AEC0',
-                    maxHeight: '260px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {JSON.stringify(currentPkg, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -1,16 +1,19 @@
 import { useState, useMemo } from 'react';
-import type { EvidencePackage, FilterState, TabId } from './types/forensics';
-import { evidencePackages, computeSummaryStats, getRiskSeverityBand } from './data/evidenceData';
-import { Navbar } from './components/layout/Navbar';
-import { Sidebar } from './components/layout/Sidebar';
-import { OverviewTab } from './components/tabs/OverviewTab';
-import { AlertQueueTab } from './components/tabs/AlertQueueTab';
-import { CaseDetailTab } from './components/tabs/CaseDetailTab';
-import { NetworkTab } from './components/tabs/NetworkTab';
-import { ModelInsightsTab } from './components/tabs/ModelInsightsTab';
-import { ModalDossier } from './components/common/ModalDossier';
+import { motion, AnimatePresence } from 'motion/react';
+import type { EvidencePackage, FilterState, TabId } from '@/types/forensics';
+import { evidencePackages, computeSummaryStats, getRiskSeverityBand } from '@/data/evidenceData';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { LenisProvider } from '@/components/common/LenisProvider';
+import { Navbar } from '@/components/layout/Navbar';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { OverviewTab } from '@/components/tabs/OverviewTab';
+import { AlertQueueTab } from '@/components/tabs/AlertQueueTab';
+import { CaseDetailTab } from '@/components/tabs/CaseDetailTab';
+import { NetworkTab } from '@/components/tabs/NetworkTab';
+import { ModelInsightsTab } from '@/components/tabs/ModelInsightsTab';
+import { ModalDossier } from '@/components/common/ModalDossier';
 
-export function App() {
+export function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [selectedWalletId, setSelectedWalletId] = useState<string>(
     evidencePackages[0]?.wallet_id || ''
@@ -80,7 +83,7 @@ export function App() {
   };
 
   return (
-    <div className="app-layout">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-200 selection:bg-accent selection:text-accent-foreground">
       {/* Navbar Header */}
       <Navbar
         activeTab={activeTab}
@@ -89,58 +92,102 @@ export function App() {
       />
 
       {/* Main Investigation Workspace */}
-      <div className="main-container">
-        {/* Sidebar Filters (visible on Queue, Overview, and Detail) */}
-        {activeTab !== 'models' && (
-          <Sidebar
-            filters={filters}
-            onFilterChange={setFilters}
-            availablePatterns={availablePatterns}
-            totalRecords={evidencePackages.length}
-            filteredRecords={filteredEvidence.length}
-          />
-        )}
-
-        {/* Dynamic Tab Content View */}
-        <main className="content-area">
-          {activeTab === 'overview' && (
-            <OverviewTab
-              evidenceList={filteredEvidence}
-              stats={summaryStats}
-              onInspect={handleInspectEntity}
-              onNavigateToQueue={() => setActiveTab('queue')}
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Filters (visible on Queue, Overview, Detail, and Network) */}
+          {activeTab !== 'models' && (
+            <Sidebar
+              filters={filters}
+              onFilterChange={setFilters}
+              availablePatterns={availablePatterns}
+              totalRecords={evidencePackages.length}
+              filteredRecords={filteredEvidence.length}
             />
           )}
 
-          {activeTab === 'queue' && (
-            <AlertQueueTab
-              evidenceList={filteredEvidence}
-              onInspect={handleInspectEntity}
-              onSelectEntity={handleSelectEntityFromQueue}
-            />
-          )}
+          {/* Dynamic Tab Content View */}
+          <main className="flex-1 min-w-0">
+            <AnimatePresence mode="wait">
+              {activeTab === 'overview' && (
+                <motion.div
+                  key="overview"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <OverviewTab
+                    evidenceList={filteredEvidence}
+                    stats={summaryStats}
+                    onInspect={handleInspectEntity}
+                    onNavigateToQueue={() => setActiveTab('queue')}
+                  />
+                </motion.div>
+              )}
 
-          {activeTab === 'detail' && (
-            <CaseDetailTab
-              evidenceList={filteredEvidence.length > 0 ? filteredEvidence : evidencePackages}
-              selectedWalletId={selectedWalletId}
-              onSelectWallet={setSelectedWalletId}
-              onNavigateToNetwork={handleNavigateToNetwork}
-            />
-          )}
+              {activeTab === 'queue' && (
+                <motion.div
+                  key="queue"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <AlertQueueTab
+                    evidenceList={filteredEvidence}
+                    onInspect={handleInspectEntity}
+                    onSelectEntity={handleSelectEntityFromQueue}
+                  />
+                </motion.div>
+              )}
 
-          {activeTab === 'network' && (
-            <NetworkTab
-              evidenceList={filteredEvidence.length > 0 ? filteredEvidence : evidencePackages}
-              selectedWalletId={selectedWalletId}
-              onSelectWallet={setSelectedWalletId}
-            />
-          )}
+              {activeTab === 'detail' && (
+                <motion.div
+                  key="detail"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CaseDetailTab
+                    evidenceList={filteredEvidence.length > 0 ? filteredEvidence : evidencePackages}
+                    selectedWalletId={selectedWalletId}
+                    onSelectWallet={setSelectedWalletId}
+                    onNavigateToNetwork={handleNavigateToNetwork}
+                  />
+                </motion.div>
+              )}
 
-          {activeTab === 'models' && (
-            <ModelInsightsTab evidenceList={evidencePackages} />
-          )}
-        </main>
+              {activeTab === 'network' && (
+                <motion.div
+                  key="network"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <NetworkTab
+                    evidenceList={filteredEvidence.length > 0 ? filteredEvidence : evidencePackages}
+                    selectedWalletId={selectedWalletId}
+                    onSelectWallet={setSelectedWalletId}
+                  />
+                </motion.div>
+              )}
+
+              {activeTab === 'models' && (
+                <motion.div
+                  key="models"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ModelInsightsTab evidenceList={evidencePackages} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </main>
+        </div>
       </div>
 
       {/* Quick Dossier Modal */}
@@ -150,6 +197,16 @@ export function App() {
         onNavigateToDetail={handleSelectEntityFromQueue}
       />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider defaultTheme="dark">
+      <LenisProvider>
+        <AppContent />
+      </LenisProvider>
+    </ThemeProvider>
   );
 }
 

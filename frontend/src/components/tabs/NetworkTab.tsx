@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { EvidencePackage, SubgraphNode, SubgraphEdge } from '../../types/forensics';
-import { RefreshCw } from 'lucide-react';
+import { motion } from 'motion/react';
+import type { EvidencePackage, SubgraphNode, SubgraphEdge } from '@/types/forensics';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useTheme } from '@/context/ThemeContext';
+import { RefreshCw, Share2, ShieldAlert } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NetworkTabProps {
   evidenceList: EvidencePackage[];
@@ -26,6 +32,7 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
   const [hopDistance, setHopDistance] = useState<number>(2);
   const [physicsActive, setPhysicsActive] = useState<boolean>(true);
   const [inspectedNode, setInspectedNode] = useState<SubgraphNode | null>(null);
+  const { isDark } = useTheme();
 
   const currentPkg =
     evidenceList.find((e) => e.wallet_id === selectedWalletId) ||
@@ -44,7 +51,7 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
     const resizeCanvas = () => {
       if (canvas.parentElement) {
         canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = Math.max(520, canvas.parentElement.clientHeight || 520);
+        canvas.height = Math.max(540, canvas.parentElement.clientHeight || 540);
       }
     };
 
@@ -62,8 +69,8 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
     rawNodes.forEach((n, idx) => {
       const angle = (idx / Math.max(1, rawNodes.length)) * Math.PI * 2;
       const isTarget = n.id === currentPkg.wallet_id || n.type === 'target';
-      const radius = isTarget ? 14 : n.type === 'transaction' ? 10 : 8;
-      const dist = isTarget ? 0 : 90 + Math.random() * 80;
+      const radius = isTarget ? 15 : n.type === 'transaction' ? 11 : 9;
+      const dist = isTarget ? 0 : 100 + Math.random() * 90;
 
       nodeMap.set(n.id, {
         ...n,
@@ -94,7 +101,7 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
       // Check if clicking node
       for (const n of simNodes) {
         const d = Math.hypot(n.x - mouseX, n.y - mouseY);
-        if (d <= n.radius + 4) {
+        if (d <= n.radius + 5) {
           draggedNode = n;
           n.isDragging = true;
           setInspectedNode(n);
@@ -140,12 +147,25 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
     window.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('wheel', handleWheel);
 
-    const colors: Record<string, string> = {
-      target: '#8B2E2E',
-      wallet: '#3182CE',
-      transaction: '#A0AEC0',
-      ip: '#B8562E',
-    };
+    const colors: Record<string, string> = isDark
+      ? {
+          target: '#EF4444',
+          wallet: '#38BDF8',
+          transaction: '#94A3B8',
+          ip: '#FB923C',
+          edge: '#334155',
+          text: '#E2E8F0',
+          bg: '#0B1220',
+        }
+      : {
+          target: '#DC2626',
+          wallet: '#0284C7',
+          transaction: '#64748B',
+          ip: '#EA580C',
+          edge: '#CBD5E1',
+          text: '#1E293B',
+          bg: '#F8FAFC',
+        };
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -164,10 +184,10 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
             const dx = n2.x - n1.x;
             const dy = n2.y - n1.y;
             const dist = Math.hypot(dx, dy) || 1;
-            if (dist < 180) {
-              const force = (180 - dist) / 180;
-              const fx = (dx / dist) * force * 1.2;
-              const fy = (dy / dist) * force * 1.2;
+            if (dist < 190) {
+              const force = (190 - dist) / 190;
+              const fx = (dx / dist) * force * 1.3;
+              const fy = (dy / dist) * force * 1.3;
               if (!n1.isDragging) {
                 n1.vx -= fx;
                 n1.vy -= fy;
@@ -188,8 +208,8 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
             const dx = n2.x - n1.x;
             const dy = n2.y - n1.y;
             const dist = Math.hypot(dx, dy) || 1;
-            const idealDist = 90;
-            const force = (dist - idealDist) * 0.03;
+            const idealDist = 95;
+            const force = (dist - idealDist) * 0.035;
             const fx = (dx / dist) * force;
             const fy = (dy / dist) * force;
 
@@ -198,8 +218,8 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
               n1.vy += fy;
             }
             if (!n2.isDragging) {
-              n2.vx -= fx;
-              n2.vy -= fy;
+              n2.vx += fx;
+              n2.vy += fy;
             }
           }
         }
@@ -228,7 +248,7 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
           ctx.beginPath();
           ctx.moveTo(n1.x, n1.y);
           ctx.lineTo(n2.x, n2.y);
-          ctx.strokeStyle = '#1F2A44';
+          ctx.strokeStyle = colors.edge;
           ctx.lineWidth = 1.5;
           ctx.stroke();
 
@@ -242,7 +262,7 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
           ctx.lineTo(arrowX - 7 * Math.cos(angle - Math.PI / 6), arrowY - 7 * Math.sin(angle - Math.PI / 6));
           ctx.lineTo(arrowX - 7 * Math.cos(angle + Math.PI / 6), arrowY - 7 * Math.sin(angle + Math.PI / 6));
           ctx.closePath();
-          ctx.fillStyle = '#1F2A44';
+          ctx.fillStyle = colors.edge;
           ctx.fill();
         }
       });
@@ -255,7 +275,7 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
           // Outer glow for target
           ctx.beginPath();
           ctx.arc(n.x, n.y, n.radius + 8, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(139, 46, 46, 0.25)';
+          ctx.fillStyle = isDark ? 'rgba(239, 68, 68, 0.25)' : 'rgba(220, 38, 38, 0.2)';
           ctx.fill();
         }
 
@@ -263,13 +283,13 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
         ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.strokeStyle = '#0B1220';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = colors.bg;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
         // Node Label
         ctx.font = '10px "IBM Plex Mono", monospace';
-        ctx.fillStyle = '#E8E6DE';
+        ctx.fillStyle = colors.text;
         ctx.textAlign = 'center';
         const label = (n.label || n.id).substring(0, 10);
         ctx.fillText(label, n.x, n.y + n.radius + 13);
@@ -290,157 +310,137 @@ export const NetworkTab: React.FC<NetworkTabProps> = ({
       canvas.removeEventListener('wheel', handleWheel);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [currentPkg, physicsActive, hopDistance]);
+  }, [currentPkg, physicsActive, hopDistance, isDark]);
 
   if (!currentPkg) {
-    return <div className="card">No network data available.</div>;
+    return (
+      <Card className="text-center py-16 px-4">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-40" />
+        <h3 className="font-serif text-base font-bold text-foreground">No network data available</h3>
+      </Card>
+    );
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-4"
+    >
       {/* Network Header & Controls */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-2">
         <div>
-          <h2 className="font-serif" style={{ fontSize: '1.4rem', color: 'var(--text)' }}>
-            🕸️ Topological Subgraph Explorer
+          <h2 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Share2 className="h-5 w-5 text-accent" />
+            Topological Subgraph Explorer
           </h2>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Directed multi-hop transaction flow and broadcast IP geolocations
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="flex items-center gap-2 flex-wrap">
           <select
-            className="search-input"
+            className="h-9 px-3 py-1 text-xs font-mono rounded-md border border-input bg-card-raised text-foreground focus:outline-none focus:ring-1 focus:ring-accent max-w-xs cursor-pointer shadow-sm"
             value={currentPkg.wallet_id}
             onChange={(e) => onSelectWallet(e.target.value)}
-            style={{ width: '280px', cursor: 'pointer' }}
           >
             {evidenceList.map((e) => (
-              <option key={e.wallet_id} value={e.wallet_id}>
+              <option key={e.wallet_id} value={e.wallet_id} className="bg-card text-foreground">
                 {e.wallet_id.substring(0, 16)}... ({Number(e.final_risk_score).toFixed(1)})
               </option>
             ))}
           </select>
 
-          <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--surface-raised)', padding: '2px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+          {/* Hop Selector */}
+          <div className="inline-flex bg-card-raised border border-border rounded-md p-0.5 gap-0.5">
             {[1, 2, 3].map((h) => (
               <button
                 key={h}
-                className={`btn btn-sm ${hopDistance === h ? 'btn-accent' : ''}`}
-                style={{ padding: '2px 8px', fontSize: '0.72rem' }}
                 onClick={() => setHopDistance(h)}
+                className={cn(
+                  'px-2.5 py-1 text-xs font-mono rounded transition-all font-medium',
+                  hopDistance === h
+                    ? 'bg-accent text-accent-foreground font-semibold shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
               >
                 {h} Hop{h > 1 ? 's' : ''}
               </button>
             ))}
           </div>
 
-          <button
-            className={`btn btn-sm ${physicsActive ? 'btn-accent' : ''}`}
+          <Button
+            variant={physicsActive ? 'accent' : 'outline'}
+            size="sm"
             onClick={() => setPhysicsActive(!physicsActive)}
+            className="text-xs h-9 gap-1.5"
           >
-            <RefreshCw size={13} /> {physicsActive ? 'Physics: On' : 'Physics: Frozen'}
-          </button>
+            <RefreshCw className={cn('h-3.5 w-3.5', physicsActive && 'animate-spin')} style={{ animationDuration: '8s' }} />
+            {physicsActive ? 'Physics: Live' : 'Physics: Frozen'}
+          </Button>
         </div>
       </div>
 
       {/* Main Canvas Container with Floating Overlay */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '520px',
-          backgroundColor: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          marginBottom: '16px',
-        }}
-      >
-        <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block', cursor: 'grab' }} />
+      <Card className="relative w-full h-[540px] shadow-card border-border/80 overflow-hidden bg-card">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full block cursor-grab active:cursor-grabbing"
+        />
 
         {/* Legend Overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '14px',
-            left: '14px',
-            backgroundColor: 'rgba(19, 27, 46, 0.9)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            padding: '10px 14px',
-            fontSize: '0.75rem',
-            fontFamily: 'IBM Plex Sans, sans-serif',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-          }}
-        >
-          <div style={{ fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="absolute bottom-4 left-4 p-3.5 rounded-lg border border-border/80 bg-card/90 backdrop-blur-md text-xs shadow-lg space-y-2 max-w-xs pointer-events-none sm:pointer-events-auto">
+          <div className="font-bold text-foreground text-[11px] uppercase tracking-wider">
             Node Taxonomy Legend
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#8B2E2E' }} />
-            <span>Target Anomaly Wallet (Score: {Number(currentPkg.final_risk_score).toFixed(1)})</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#3182CE' }} />
-            <span>Counterparty Wallets</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#A0AEC0' }} />
-            <span>Transaction Intermediary Hubs</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#B8562E' }} />
-            <span>Broadcast IP Geolocation</span>
+          <div className="space-y-1.5 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
+              <span className="text-foreground font-medium">Target Anomaly Wallet ({Number(currentPkg.final_risk_score).toFixed(1)})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-sky-400" />
+              <span>Counterparty Wallets</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+              <span>Transaction Intermediary Hubs</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-orange-400" />
+              <span>Broadcast IP Geolocation</span>
+            </div>
           </div>
         </div>
 
         {/* Selected Node Details Drawer */}
         {inspectedNode && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '14px',
-              right: '14px',
-              backgroundColor: 'rgba(19, 27, 46, 0.92)',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              padding: '12px 16px',
-              maxWidth: '280px',
-              backdropFilter: 'blur(4px)',
-              fontSize: '0.78rem',
-            }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute top-4 right-4 p-4 rounded-lg border border-border/80 bg-card/95 backdrop-blur-md shadow-2xl max-w-xs text-xs space-y-2"
           >
-            <div style={{ fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '4px' }}>
-              Selected Graph Node
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                Inspected Graph Node
+              </span>
+              <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                {inspectedNode.type}
+              </Badge>
             </div>
-            <div className="font-mono" style={{ color: 'var(--text)', wordBreak: 'break-all', marginBottom: '6px' }}>
+            <div className="font-mono text-xs font-bold text-foreground break-all select-all">
               {inspectedNode.id}
             </div>
-            <div style={{ color: 'var(--text-muted)' }}>
-              Type: <strong style={{ color: 'var(--text)' }}>{inspectedNode.type}</strong>
-            </div>
             {inspectedNode.country && (
-              <div style={{ color: 'var(--text-muted)' }}>
-                Jurisdiction: <strong style={{ color: 'var(--text)' }}>{inspectedNode.country}</strong>
+              <div className="text-muted-foreground pt-1 border-t border-border/60">
+                Jurisdiction: <strong className="text-foreground">{inspectedNode.country}</strong>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
-      </div>
-    </div>
+      </Card>
+    </motion.div>
   );
 };

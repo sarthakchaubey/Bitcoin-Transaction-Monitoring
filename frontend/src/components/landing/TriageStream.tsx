@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import type { EvidencePackage } from '../../types/forensics';
-import { RiskPill } from '../common/RiskPill';
+import { motion, AnimatePresence } from 'motion/react';
+import type { EvidencePackage } from '@/types/forensics';
+import { RiskPill } from '@/components/common/RiskPill';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { Search, ArrowRight, Tag, ChevronDown, ChevronUp, ExternalLink, ShieldAlert, SlidersHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TriageStreamProps {
   evidenceList: EvidencePackage[];
@@ -27,56 +33,23 @@ export const TriageStream: React.FC<TriageStreamProps> = ({ evidenceList, onInsp
   const displayedList = limit === -1 ? filtered : filtered.slice(0, limit);
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Header Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: isMinimized ? 0 : '16px',
-          borderBottom: isMinimized ? 'none' : '1px solid var(--border)',
-          paddingBottom: isMinimized ? 0 : '12px',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              backgroundColor: 'var(--surface-raised)',
-              border: '1px solid var(--border)',
-              color: 'var(--risk-critical)',
-            }}
-          >
-            <ShieldAlert size={18} />
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/80">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-risk-critical-bg border border-risk-critical-border text-risk-critical">
+            <ShieldAlert className="h-5 w-5" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 className="font-serif" style={{ fontSize: '1.15rem', color: 'var(--text)', margin: 0 }}>
+            <div className="flex items-center gap-2">
+              <h3 className="font-serif text-base sm:text-lg font-bold text-foreground">
                 High-Risk Priority Triage Feed
               </h3>
-              <span
-                style={{
-                  backgroundColor: 'var(--surface-raised)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px',
-                  padding: '2px 8px',
-                  fontSize: '0.72rem',
-                  fontFamily: 'IBM Plex Mono, monospace',
-                  color: 'var(--accent)',
-                }}
-              >
+              <Badge variant="accent" className="font-mono text-[10px]">
                 {filtered.length} Entities
-              </span>
+              </Badge>
             </div>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {isMinimized
                 ? 'Section minimized. Click expand or jump to the dedicated Alert Queue page.'
                 : `Displaying top ${displayedList.length} of ${filtered.length} ranked critical targets`}
@@ -85,22 +58,12 @@ export const TriageStream: React.FC<TriageStreamProps> = ({ evidenceList, onInsp
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-2 flex-wrap">
           {!isMinimized && (
             <>
               {/* Limit Pill Selector */}
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  backgroundColor: 'var(--surface-raised)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '6px',
-                  padding: '2px',
-                  gap: '2px',
-                }}
-              >
-                <SlidersHorizontal size={13} style={{ marginLeft: '6px', marginRight: '2px', color: 'var(--text-muted)' }} />
+              <div className="inline-flex items-center bg-card-raised border border-border rounded-lg p-0.5 gap-1">
+                <SlidersHorizontal className="h-3.5 w-3.5 ml-2 mr-1 text-muted-foreground" />
                 {[
                   { label: 'Top 6', val: 6 },
                   { label: 'Top 12', val: 12 },
@@ -108,16 +71,12 @@ export const TriageStream: React.FC<TriageStreamProps> = ({ evidenceList, onInsp
                 ].map((opt) => (
                   <button
                     key={opt.val}
-                    className={`btn btn-sm ${limit === opt.val ? 'btn-accent' : ''}`}
-                    style={{
-                      padding: '3px 8px',
-                      fontSize: '0.72rem',
-                      height: '24px',
-                      minHeight: '24px',
-                      background: limit === opt.val ? 'var(--accent)' : 'transparent',
-                      color: limit === opt.val ? '#0c1017' : 'var(--text-muted)',
-                      border: 'none',
-                    }}
+                    className={cn(
+                      'px-2.5 py-1 text-xs rounded-md transition-all font-medium',
+                      limit === opt.val
+                        ? 'bg-accent text-accent-foreground font-semibold shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
                     onClick={() => setLimit(opt.val)}
                   >
                     {opt.label}
@@ -126,250 +85,184 @@ export const TriageStream: React.FC<TriageStreamProps> = ({ evidenceList, onInsp
               </div>
 
               {/* Search Box */}
-              <div style={{ position: 'relative', width: '210px' }}>
-                <input
+              <div className="relative w-44 sm:w-52">
+                <Input
                   type="text"
-                  className="search-input"
-                  style={{ height: '30px', fontSize: '0.78rem', paddingRight: '28px' }}
-                  placeholder="Filter addresses..."
+                  placeholder="Filter targets..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  className="h-8 text-xs pr-7"
                 />
-                <Search
-                  size={13}
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                    pointerEvents: 'none',
-                  }}
-                />
+                <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
               </div>
             </>
           )}
 
           {/* Jump to Alert Queue Tab */}
           {onNavigateToQueue && (
-            <button
-              className="btn btn-sm btn-accent"
+            <Button
+              variant="accent"
+              size="sm"
               onClick={onNavigateToQueue}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', height: '30px' }}
+              className="text-xs h-8"
               title="Open full dedicated Alert Queue page with table, sorting, and CSV export"
             >
-              <ExternalLink size={13} /> Open Alert Queue Page ({filtered.length})
-            </button>
+              <ExternalLink className="h-3.5 w-3.5" />
+              Alert Queue ({filtered.length})
+            </Button>
           )}
 
           {/* Minimize / Expand Toggle */}
-          <button
-            className="btn btn-sm"
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsMinimized(!isMinimized)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '0.75rem',
-              height: '30px',
-              color: 'var(--text)',
-            }}
+            className="text-xs h-8"
             title={isMinimized ? 'Expand Triage Feed' : 'Minimize Triage Feed'}
           >
             {isMinimized ? (
               <>
-                <ChevronDown size={14} /> Expand Feed
+                <ChevronDown className="h-3.5 w-3.5" /> Expand
               </>
             ) : (
               <>
-                <ChevronUp size={14} /> Minimize
+                <ChevronUp className="h-3.5 w-3.5" /> Minimize
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Collapsible Content */}
-      {!isMinimized && (
-        <>
-          {displayedList.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px' }}>
-              No entities matched the search filter "{query}".
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: '14px',
-              }}
-            >
-              {displayedList.map((item) => {
-                const shaps = (item.shap_explanation || []).slice(0, 2);
-                return (
-                  <div
-                    key={item.wallet_id}
-                    className="card"
-                    onClick={() => onInspect(item)}
-                    style={{
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      transition: 'all 0.2s ease',
-                      margin: 0,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--surface-raised)';
-                      e.currentTarget.style.borderColor = 'var(--accent)';
-                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--surface)';
-                      e.currentTarget.style.borderColor = 'var(--border)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                        <span className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text)' }}>
-                          {item.wallet_id.substring(0, 14)}...
-                        </span>
-                        <RiskPill score={Number(item.final_risk_score)} />
-                      </div>
-
-                      <div
-                        className="font-mono"
-                        style={{
-                          fontSize: '0.74rem',
-                          color: 'var(--accent)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          marginBottom: '8px',
-                        }}
-                      >
-                        <Tag size={12} /> {item.pattern_hint || 'unknown'}
-                      </div>
-
-                      <p
-                        style={{
-                          fontSize: '0.82rem',
-                          color: 'var(--text-muted)',
-                          lineHeight: 1.4,
-                          marginBottom: '10px',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {item.reason_sentence || 'Anomalous network transaction signature detected.'}
-                      </p>
-
-                      {/* Inline Mini SHAP Bars */}
-                      {shaps.length > 0 && (
-                        <div
-                          style={{
-                            borderTop: '1px solid var(--border-light)',
-                            paddingTop: '8px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                          }}
-                        >
-                          {shaps.map((s, idx) => {
-                            const val = Math.abs(Number(s.shap_value) || 0);
-                            const width = Math.min(100, Math.round(val * 180));
-                            const isRisk = s.direction === 'increases_risk' || Number(s.shap_value) > 0;
-                            const barColor = isRisk ? 'var(--risk-high)' : 'var(--risk-low)';
-
-                            return (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
-                                <span
-                                  className="font-mono"
-                                  style={{ width: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}
-                                  title={s.feature}
-                                >
-                                  {s.feature}
-                                </span>
-                                <div style={{ flex: 1, height: '4px', backgroundColor: 'var(--surface-raised)', borderRadius: '2px', overflow: 'hidden' }}>
-                                  <div style={{ width: `${width}%`, height: '100%', backgroundColor: barColor, borderRadius: '2px' }} />
-                                </div>
-                                <span className="font-mono" style={{ color: 'var(--text)', fontSize: '0.7rem' }}>
-                                  {Number(s.shap_value).toFixed(2)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginTop: '12px',
-                        paddingTop: '8px',
-                        borderTop: '1px solid var(--border)',
-                        fontSize: '0.74rem',
-                        color: 'var(--text-muted)',
-                      }}
+      <AnimatePresence>
+        {!isMinimized && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-4"
+          >
+            {displayedList.length === 0 ? (
+              <Card className="text-center py-10 text-muted-foreground text-xs">
+                No entities matched the search filter "{query}".
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {displayedList.map((item, index) => {
+                  const shaps = (item.shap_explanation || []).slice(0, 2);
+                  return (
+                    <motion.div
+                      key={item.wallet_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: index * 0.03 }}
                     >
-                      <span>
-                        Confidence: <strong style={{ color: 'var(--text)' }}>{item.confidence_label || 'Normal'}</strong>
-                      </span>
-                      <span style={{ color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                        Inspect <ArrowRight size={13} />
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                      <Card
+                        onClick={() => onInspect(item)}
+                        className="group flex flex-col justify-between h-full p-4 cursor-pointer hover:border-accent hover:bg-card-raised/70 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card"
+                      >
+                        <div>
+                          {/* Wallet Header & Risk Pill */}
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <span className="font-mono text-xs font-bold text-foreground group-hover:text-accent transition-colors truncate">
+                              {item.wallet_id.substring(0, 16)}...
+                            </span>
+                            <RiskPill score={Number(item.final_risk_score)} />
+                          </div>
 
-          {/* Footer Navigation Bar when limited */}
-          {limit > 0 && filtered.length > limit && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '16px',
-                paddingTop: '12px',
-                borderTop: '1px solid var(--border)',
-                fontSize: '0.8rem',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <span>
-                Showing <strong>{displayedList.length}</strong> of <strong>{filtered.length}</strong> prioritized alerts.
-              </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className="btn btn-sm"
-                  onClick={() => setLimit(limit === 6 ? 12 : -1)}
-                  style={{ fontSize: '0.75rem' }}
-                >
-                  {limit === 6 ? 'Show Next 6 (+6)' : 'Show All'}
-                </button>
-                {onNavigateToQueue && (
-                  <button
-                    className="btn btn-sm btn-accent"
-                    onClick={onNavigateToQueue}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
-                  >
-                    View All {filtered.length} In Full Alert Queue <ArrowRight size={13} />
-                  </button>
-                )}
+                          {/* Pattern Tag */}
+                          <div className="flex items-center gap-1 text-[11px] font-mono text-accent mb-2">
+                            <Tag className="h-3 w-3" />
+                            <span>{item.pattern_hint || 'unknown'}</span>
+                          </div>
+
+                          {/* Reason Sentence */}
+                          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-3">
+                            {item.reason_sentence || 'Anomalous network transaction signature detected.'}
+                          </p>
+
+                          {/* Inline Mini SHAP Bars */}
+                          {shaps.length > 0 && (
+                            <div className="pt-2 border-t border-border/60 space-y-1.5">
+                              {shaps.map((s, idx) => {
+                                const val = Math.abs(Number(s.shap_value) || 0);
+                                const width = Math.min(100, Math.round(val * 180));
+                                const isRisk = s.direction === 'increases_risk' || Number(s.shap_value) > 0;
+                                const barColor = isRisk ? 'bg-risk-high' : 'bg-risk-low';
+
+                                return (
+                                  <div key={idx} className="flex items-center gap-2 text-[11px]">
+                                    <span
+                                      className="font-mono text-muted-foreground w-24 truncate"
+                                      title={s.feature}
+                                    >
+                                      {s.feature}
+                                    </span>
+                                    <div className="flex-1 h-1.5 bg-muted/60 rounded-full overflow-hidden">
+                                      <div
+                                        className={cn('h-full rounded-full', barColor)}
+                                        style={{ width: `${width}%` }}
+                                      />
+                                    </div>
+                                    <span className="font-mono text-[10px] text-foreground font-semibold">
+                                      {Number(s.shap_value).toFixed(2)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Footer */}
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/60 text-xs text-muted-foreground">
+                          <span>
+                            Confidence: <strong className="text-foreground">{item.confidence_label || 'Normal'}</strong>
+                          </span>
+                          <span className="text-accent font-semibold flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform">
+                            Inspect <ArrowRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+
+            {/* Footer Pagination Controls */}
+            {limit > 0 && filtered.length > limit && (
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/80 text-xs text-muted-foreground">
+                <span>
+                  Showing <strong className="text-foreground">{displayedList.length}</strong> of{' '}
+                  <strong className="text-foreground">{filtered.length}</strong> prioritized alerts.
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLimit(limit === 6 ? 12 : -1)}
+                    className="text-xs h-7"
+                  >
+                    {limit === 6 ? 'Show Next 6 (+6)' : 'Show All'}
+                  </Button>
+                  {onNavigateToQueue && (
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      onClick={onNavigateToQueue}
+                      className="text-xs h-7 flex items-center gap-1"
+                    >
+                      View All in Queue <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
